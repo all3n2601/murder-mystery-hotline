@@ -21,8 +21,17 @@ export function fakeLlm(replies: string[][]) {
 
 export function fakeTts(opts: { fail?: boolean; msPerSentence?: number } = {}) {
   const spoken: { voice: string; text: string }[] = [];
+  const lines: { voice: string; closed: boolean }[] = [];
   let aborts = 0;
   const port: TtsPort = {
+    openLine(voice) {
+      const line = { voice, closed: false };
+      lines.push(line);
+      return {
+        speak: (args) => port.speak({ ...args, voice }),
+        close: () => (line.closed = true),
+      };
+    },
     async speak({ voice, sentences, signal, onAudio, onWords }) {
       if (opts.fail) throw new Error("tts down");
       for await (const text of sentences) {
@@ -36,7 +45,7 @@ export function fakeTts(opts: { fail?: boolean; msPerSentence?: number } = {}) {
       if (signal.aborted) aborts++;
     },
   };
-  return { port, spoken, aborts: () => aborts };
+  return { port, spoken, lines, aborts: () => aborts };
 }
 
 export function fakeStt() {

@@ -5,7 +5,18 @@ import { WebSocketServer, type WebSocket } from "ws";
 // verified on 2026-10-17 (docs/reference/assemblyai/tts-protocol.md). Audio is the UTF-8
 // bytes of the flushed text, so tests can read what was "spoken".
 
-export async function startFakeTtsServer(opts: { maxConcurrent?: number; flushDelayMs?: number; failWith?: string } = {}) {
+export async function startFakeTtsServer(
+  opts: {
+    maxConcurrent?: number;
+    flushDelayMs?: number;
+    failWith?: string;
+    /**
+     * Like the real server (probed 2026-10-17): audio already being generated keeps arriving
+     * after a Cancel, up to the Cancelled ack, and never after it.
+     */
+    lateAudioAfterCancel?: boolean;
+  } = {},
+) {
   const wss = new WebSocketServer({ port: 0 });
   await new Promise<void>((r) => wss.once("listening", () => r()));
   const log: { voice: string | null; auth: string | undefined; received: string[] }[] = [];
@@ -28,6 +39,7 @@ export async function startFakeTtsServer(opts: { maxConcurrent?: number; flushDe
 
     let buffered = "";
     let flushId = 0;
+    const cancelled = new Set<number>(); // flushes a Cancel arrived for before their audio went out
     ws.on("message", (raw) => {
       const msg = JSON.parse(raw.toString()) as { type: string; text?: string };
       entry.received.push(msg.type);
@@ -39,6 +51,8 @@ export async function startFakeTtsServer(opts: { maxConcurrent?: number; flushDe
       if (msg.type === "Generate") buffered += msg.text ?? "";
       if (msg.type === "Cancel") {
         buffered = "";
+        for (let id = 0; id < flushId; id++) cancelled.add(id);
+        if (opts.lateAudioAfterCancel) ws.send(JSON.stringify({ type: "Audio", audio: Buffer.from("STALE").toString("base64") }));
         ws.send(JSON.stringify({ type: "Cancelled", audio_duration_seconds: 0 }));
       }
       if (msg.type === "Flush") {
@@ -47,12 +61,16 @@ export async function startFakeTtsServer(opts: { maxConcurrent?: number; flushDe
         buffered = "";
         setTimeout(() => {
           if (ws.readyState !== ws.OPEN) return;
+          if (cancelled.has(id)) return; // nothing for a cancelled flush after the ack, not even FlushDone
           ws.send(JSON.stringify({ type: "Audio", audio: Buffer.from(text).toString("base64") }));
           ws.send(JSON.stringify({ type: "FlushDone", flush_id: id, audio_duration_ms: 100 }));
           ws.send(JSON.stringify({ type: "WordBoundaries", flush_id: id, audio_start_ms: 0, words: [{ word: text, start: 0, end: 100 }] }));
         }, opts.flushDelayMs ?? 5);
       }
-      if (msg.type === "Terminate") ws.close(1000);
+      if (msg.type === "Terminate") {
+        ws.send(JSON.stringify({ type: "Termination" }));
+        ws.close(1000);
+      }
     });
   });
 
@@ -61,6 +79,8 @@ export async function startFakeTtsServer(opts: { maxConcurrent?: number; flushDe
     log,
     peakOpen: () => peakOpen,
     openNow: () => open,
+    /** Drops every open connection, as a flaky network would. */
+    dropAll: () => wss.clients.forEach((c) => c.terminate()),
     close: () => new Promise<void>((r) => wss.close(() => r())),
   };
 }

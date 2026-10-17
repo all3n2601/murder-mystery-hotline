@@ -17,20 +17,29 @@ export interface SttSession {
   close(): void;
 }
 
-export interface TtsPort {
+/** One open voice: speaks utterance after utterance over a single TTS session. */
+export interface TtsLine {
   /**
-   * Speaks sentences as they arrive, in one voice. Resolves when all audio has been delivered,
-   * rejects on failure. Aborting the signal stops speech immediately.
+   * Speaks sentences as they arrive. Resolves when all audio has been delivered, rejects on
+   * failure. Aborting the signal stops speech immediately; the line stays usable.
    */
   speak(opts: {
-    voice: string;
     sentences: AsyncIterable<string>;
     signal: AbortSignal;
     onAudio(pcm24k: Uint8Array): void;
     onWords?(words: Word[]): void;
-    /** Called if every TTS line is busy and this reply has to wait. */
+    /** Called if every TTS line is busy and this utterance has to wait. */
     onQueued?(): void;
   }): Promise<void>;
+  /** Ends the session so it stops counting against the account. */
+  close(): void;
+}
+
+export interface TtsPort {
+  /** Opens a reusable line for one voice, e.g. for the length of a phone call. */
+  openLine(voice: string): TtsLine;
+  /** Speaks once on a short-lived line. */
+  speak(opts: Parameters<TtsLine["speak"]>[0] & { voice: string }): Promise<void>;
 }
 
 export interface LlmPort {

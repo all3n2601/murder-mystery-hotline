@@ -67,5 +67,18 @@ The server lists these as the only valid types: `Generate`, `Flush`, `Terminate`
 ## Limits
 
 - **At most 3 concurrent sessions per account** (free plan). A 4th connection gets `Error 3009 "Too many concurrent sessions for this account"` straight after connecting.
-- Sessions closed without `Terminate` seemed to count against the cap for a while.
+- **About 5 new sessions, then refusals for ~50–60 s** (measured 2026-10-17). The error is the same `3009 "concurrent"` one, even though each earlier session was closed properly with `Terminate`. So the practical limit is about 5 new sessions a minute. **Reuse one socket per voice instead of opening one per utterance.**
 - Pricing during the Preview is unknown.
+
+## Reusing a socket
+
+- One socket takes any number of `Generate` + `Flush` rounds. `flush_id` keeps counting up.
+- **After `Cancel`, audio of the cut-off utterance keeps arriving until `Cancelled`, and none arrives after it** (probed: 28 frames between them, 0 after). Drop audio between the two, and the socket is clean for the next utterance.
+- A cancelled flush never gets a `FlushDone`.
+- `Terminate` is answered with `{ "type": "Termination" }`, then the server closes the socket.
+
+## Acted tags
+
+The engine performs bracket tags instead of reading them. Verified two ways: by ear, and because the tag shows up in `WordBoundaries` with zero length and a sound gap before the next word.
+- **Acted:** `[sighs]`, `[laughs]`, `[chuckles]`, `[gasps]`, `[clears throat]`, `[coughs]`, `[scoffs]`.
+- **Not yet tested:** `[sniffs]`, `[whispers]`, `[groans]`, `[exhales]`, `[nervous laugh]`, `[pause]`.

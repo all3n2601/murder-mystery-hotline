@@ -1,9 +1,10 @@
-// Smoke test against a running server: plays one typed turn with the real AssemblyAI stack
-// and reports latency. Usage: pnpm dev:server (in another terminal), then pnpm smoke [question]
+// Smoke test against a running server: plays typed turns with the real AssemblyAI stack and
+// reports latency per turn. Usage: start the server, then pnpm smoke ["question" | "q1|q2|q3"]
 import WebSocket from "ws";
 import { decodeAudioFrame } from "@mmh/protocol";
 
-const question = process.argv.slice(2).join(" ") || "Mr. Doyle, where were you between one and two this morning?";
+const questions = (process.argv.slice(2).join(" ") || "Mr. Doyle, where were you between one and two this morning?").split("|");
+let turn = 0;
 const ws = new WebSocket(process.env.SMOKE_URL ?? "ws://localhost:8787/game");
 const t0 = { ask: 0 };
 let firstAudio: number | null = null;
@@ -16,9 +17,15 @@ const ms = () => Math.round(performance.now() - t0.ask);
 ws.on("open", () => {
   send({ type: "start", caseId: "night-operator" });
   send({ type: "dial", suspectId: "doyle" });
-  t0.ask = performance.now();
-  send({ type: "ask", text: question });
+  ask();
 });
+
+function ask() {
+  t0.ask = performance.now();
+  firstAudio = null;
+  audioBytes = 0;
+  send({ type: "ask", text: questions[turn]! });
+}
 
 ws.on("message", (data, isBinary) => {
   if (isBinary) {
@@ -29,11 +36,14 @@ ws.on("message", (data, isBinary) => {
     return;
   }
   const m = JSON.parse(data.toString());
-  if (m.type === "line") lines[m.utteranceId] = m.text;
+  // Only the suspect's own replies count as answers; narration (hints) is printed but skipped.
+  if (m.type === "line" && m.speaker === "doyle") lines[m.utteranceId] = m.text;
+  if (m.type === "line" && m.speaker !== "doyle") console.log(`  (${m.speaker}: ${m.text})`);
   if (["clues", "state", "error", "fallback_speech", "call"].includes(m.type)) console.log(`${String(ms()).padStart(6)}ms ${m.type}`, JSON.stringify(m).slice(0, 220));
-  if (m.type === "line_end") {
-    console.log(`\nQ: ${question}\nA: ${lines.filter(Boolean).join(" | ")}`);
+  if (m.type === "line_end" && lines[m.utteranceId] !== undefined) {
+    console.log(`\nQ${turn + 1}: ${questions[turn]}\nA: ${lines[m.utteranceId]}`);
     console.log(`first audio after ${firstAudio}ms, ${(audioBytes / 48000).toFixed(2)}s of audio, done at ${ms()}ms`);
+    if (++turn < questions.length) return void setTimeout(ask, 300);
     send({ type: "hangup" });
     setTimeout(() => process.exit(0), 500);
   }
@@ -43,6 +53,6 @@ ws.on("error", (e) => {
   process.exit(1);
 });
 setTimeout(() => {
-  console.error("timed out after 30s");
+  console.error("timed out after 120s");
   process.exit(1);
-}, 30_000);
+}, 120_000);

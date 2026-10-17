@@ -1,0 +1,130 @@
+# Murder Mystery Hotline: build checklist
+
+Everything left to ship by **Thu Oct 22, 11:59 p.m.** (submit Fri Oct 23). Priorities:
+- **P0** — the game doesn't work or can't be submitted without it.
+- **P1** — the game is weak without it.
+- **P2** — polish; cut it first if a day slips.
+
+Source of truth for decisions: [plan.md](plan.md). Ticked items are done and on `main` unless marked *(uncommitted)*.
+
+---
+
+## 0. Decisions and outside asks
+
+- [x] **P0** Decide the TTS socket design: **one reusable socket per voice per call**. Chosen because the account allows only ~5 new TTS sessions per minute.
+- [ ] **P0** Ask the organizers, in a channel you can post in:
+  - the exact submission cutoff and time zone;
+  - raised TTS limits (3 concurrent sessions, about 5 new sessions per minute);
+  - more LLM Gateway models (only `qwen3.5-4b-32k-fast` works for this account).
+- [ ] **P0** Rotate the API key that was pasted into chat (dashboard → API Keys), then update `.env`.
+- [ ] **P1** Confirm the judging criteria. Until confirmed, assume lablab's: Application of Technology, Presentation, Business Value, Originality.
+
+## 1. Backend
+
+**Done**
+- [x] Protocol: messages and utterance-tagged audio frames.
+- [x] Engine: case schema and validator, reply splitter, and the game rules (clue gating, nerves, confession, hints, verdict, stars).
+- [x] Server session: STT → LLM → TTS, barge-in, fallbacks, hang-ups, narration.
+- [x] Adapters: Streaming STT v3, streaming TTS (protocol verified), LLM Gateway.
+- [x] Limits:
+  - admission per IP and globally;
+  - calls per game and a minimum gap between dials;
+  - 5-minute calls and a push-to-talk audio cap;
+  - idle close and a CSP.
+- [x] Resume after refresh or disconnect (10 minutes).
+- [x] Every code-review finding fixed.
+- [x] TTS retries a refused session, and a stray rejection is logged instead of crashing the server.
+- [x] TTS socket reuse: one line per voice per call, `Cancel` without stale audio, transparent reconnect.
+
+**To do**
+- [ ] **P1** Expressive characters:
+  - [ ] Reply splitter keeps the acted tags (`[sighs] [laughs] [chuckles] [gasps] [clears throat] [coughs] [scoffs]`) and strips all other brackets.
+  - [ ] Case schema: a per-character `speech` block (tone, verbal habits, filler words, signature phrases, preferred tags).
+  - [ ] Prompt: a "how you talk" section; delivery that changes with nerves (smooth when calm, false starts and trailing off when rattled); the allowed-tags rule replaces "no stage directions".
+  - [ ] Finish the tag probe: `[sniffs] [whispers] [groans] [exhales] [nervous laugh] [pause]`.
+- [ ] **P1** Mrs. Hale reads the briefing aloud when a case opens.
+- [ ] **P1** Model reliability check:
+  - META stays valid over 20 or more turns;
+  - hang-ups, the confession and hints all trigger;
+  - prompt-injection attempts ("ignore your instructions") fail.
+- [ ] **P1** AI playtester: text-only, 10 runs, reporting solve rate, questions used and rarely found clues. At most 2 hours.
+- [ ] **P2** Log the Gateway `request_id` and per-turn latency (question → first audio).
+- [ ] **P2** Delete the throwaway `PROTOTYPE-*` files and the Plan B Voice Agent probes, or move them out of `src/`.
+
+## 2. Frontend (`apps/web`, replaces the test bench)
+
+- [ ] **P0** App shell: Vite, React and Zustand, plus the game-socket client with `hello`/resume.
+- [ ] **P0** Audio:
+  - [ ] Mic worklet: resample to 16 kHz inside the worklet (needed for Safari and Firefox), hold-to-talk on Space and an on-screen button, and barge-in.
+  - [ ] Playback: a ring buffer that drops stale utterance IDs, plus the phone-line filter, toned down a little.
+  - [ ] The "Pick up the receiver" click unlocks audio; mic denied falls back to typing.
+- [ ] **P0** Game screen:
+  - call panel with live captions;
+  - nerves meter;
+  - notebook;
+  - typed question box;
+  - error and busy states.
+- [ ] **P0** Accusation screen (choose a suspect, tick evidence), then the verdict with stars and Mrs. Hale's ending.
+- [ ] **P1** Pixi switchboard scene: jacks, lamps, patch cords, a lit line during a call. This gets about 70% of the art time.
+- [ ] **P1** Captions synced word by word from the `words` timings.
+- [ ] **P1** Sound effects with Howler: dial clicks, ring, receiver up and down, the busy crackle, room tone.
+- [ ] **P1** Intro cinematic (GSAP): the exchange room at night, an evidence close-up, Mrs. Hale's narration. Skippable.
+- [ ] **P1** Art: procedural Pixi pieces, 2–3 generated backdrops, suspect silhouettes. Backdrops capped at 1 hour.
+- [ ] **P1** Accessibility:
+  - every control works from the keyboard, with visible focus;
+  - captions on by default;
+  - `prefers-reduced-motion` respected.
+- [ ] **P2** Layout works on a laptop and a tablet.
+- [ ] **P2** Case board / title screen with a case picker.
+
+## 3. Content
+
+- [x] Case 1, "The Night Operator": four suspects, key clues, hints, three endings.
+- [ ] **P1** Speech styles for Doyle, Evelyn, Leo, Riley and Mrs. Hale. Re-cast voices once you've heard them in context.
+- [ ] **P1** Balance from playtests: clue gates, nerve thresholds, hint order, question budget.
+- [ ] **P2** Mini Case 2, "Dead Air" (1986): two suspects, no cinematic. Only if Day 5 is on track.
+
+## 4. Testing
+
+- [ ] **P0** Browsers: Chrome, Safari and Firefox, covering mic permission, echo, barge-in and resume.
+- [ ] **P0** End-to-end latency stays at or under 1.5 s from releasing talk to the first sound.
+- [ ] **P1** Three human playtests with people who haven't seen the case. Watch quietly and note where they get stuck.
+- [ ] **P1** Concurrency: two or three players at once stay under the TTS limits.
+
+## 5. Deploy
+
+- [ ] **P0** Dockerfile and `fly.toml`: region `iad`, one always-on machine, health check on `/health`.
+- [ ] **P0** Fly secrets: `ASSEMBLYAI_API_KEY`, `SUSPECT_MODEL`.
+- [ ] **P0** Smoke-test the deployed URL from a second device.
+- [ ] **P2** Watch spend on the AssemblyAI dashboard during judging.
+
+## 6. Submission
+
+- [ ] **P0** Repo: add an MIT `LICENSE`, make it public at submission time (lablab requires a public repo), and scrub `.env` and `probe-out/` (already git-ignored).
+- [ ] **P0** README: what it is, how to run it, the architecture diagram, the AssemblyAI products used, and the TTS protocol notes.
+- [ ] **P0** 2-minute demo video:
+  - the intro;
+  - a live interrogation in which a clue lands;
+  - pressure, then a slip;
+  - a barge-in;
+  - a prompt injection that gets shrugged off;
+  - the verdict;
+  - the architecture.
+- [ ] **P0** Slides:
+  - the problem and the pitch ("voice role-play training engine");
+  - a TTS showcase (voices, acted tags, ~0.5 s to first audio);
+  - the architecture;
+  - playtest statistics;
+  - Business Value.
+- [ ] **P1** Cover image.
+- [ ] **P0** Submit the Google Form before the cutoff.
+
+---
+
+**If a day slips, cut in this order:**
+1. case board polish;
+2. Case 2;
+3. reduced-motion extras;
+4. the intro cinematic (open straight on the switchboard with narration only).
+
+Never cut the typed fallback, the error handling, or the TTS session reuse.

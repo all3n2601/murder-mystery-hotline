@@ -1,7 +1,7 @@
 import { createGame, createReplySplitter, type CasePack, type Game } from "@mmh/engine";
 import { encodeAudioFrame, type ClientMessage, type ServerMessage } from "@mmh/protocol";
 import { createChannel } from "./channel.js";
-import type { LlmPort, SttPort, SttSession, TtsPort } from "./ports.js";
+import type { LlmPort, SttPort, SttSession, TtsLine, TtsPort } from "./ports.js";
 
 // One player's connection: turns client messages into game moves, and game moves into
 // speech. Owns the per-call STT session and the utterance currently being spoken.
@@ -37,6 +37,9 @@ export const DEFAULT_LIMITS: SessionLimits = {
   maxTalkBytes: 60 * 32_000,
 };
 
+/** Where an utterance's sentences go: a call's open line, or a one-off session. */
+type SpeakFn = TtsLine["speak"];
+
 /** Something being spoken that a barge-in can cut off. */
 type Speaking = { utteranceId: number; done: Promise<void>; interrupt(playedMs?: number): void };
 
@@ -62,7 +65,8 @@ async function* just(text: string) {
 export function createSession(deps: SessionDeps) {
   let game: Game | null = null;
   let pack: CasePack | null = null;
-  let call: { suspectId: string; voice: string } | null = null;
+  // A call keeps one TTS line open for the suspect's voice: the account allows few new sessions.
+  let call: { suspectId: string; voice: string; line: TtsLine } | null = null;
   let speaking: Speaking | null = null;
   let nextUtterance = 1;
   let stt: SttSession | null = null;
@@ -92,12 +96,16 @@ export function createSession(deps: SessionDeps) {
    * Speaks sentences in one voice as a single utterance: tags its audio, stops cleanly on
    * barge-in, and reports whether TTS delivered. Every spoken line goes through here.
    */
-  function startUtterance(speaker: string, voice: string, sentences: AsyncIterable<string>) {
+  /** One-off speech in a voice with no open line (the narrator). */
+  const oneOff =
+    (voice: string): SpeakFn =>
+    (args) =>
+      deps.tts.speak({ ...args, voice });
+
+  function startUtterance(speaker: string, speak: SpeakFn, sentences: AsyncIterable<string>) {
     const utteranceId = nextUtterance++;
     const abort = new AbortController();
-    const speech = deps.tts
-      .speak({
-        voice,
+    const speech = speak({
         sentences,
         signal: abort.signal,
         onAudio: (pcm) => {
@@ -139,8 +147,8 @@ export function createSession(deps: SessionDeps) {
   }
 
   /** Speaks a fixed line (narration, hints, endings, greetings). */
-  function speakLine(speaker: string, voice: string, text: string): Promise<void> {
-    const utterance = startUtterance(speaker, voice, just(text));
+  function speakLine(speaker: string, speak: SpeakFn, text: string): Promise<void> {
+    const utterance = startUtterance(speaker, speak, just(text));
     deps.send({ type: "line", utteranceId: utterance.utteranceId, speaker, text });
     const done = utterance.finish(() => text);
     track({ utteranceId: utterance.utteranceId, done, interrupt: () => void utterance.stop() });
@@ -149,16 +157,16 @@ export function createSession(deps: SessionDeps) {
 
   function narrate(text: string): Promise<void> {
     const { narrator } = pack!;
-    return speakLine(narrator.id, narrator.voice, text);
+    return speakLine(narrator.id, oneOff(narrator.voice), text);
   }
 
   /** Asks the active suspect one question and speaks the answer as it streams in. */
   function runTurn(question: string) {
     if (!game || !call) return error("no_call", "Plug into a line before asking questions.");
     const currentGame = game;
-    const { suspectId, voice } = call;
+    const { suspectId, line } = call;
     const sentences = createChannel<string>();
-    const utterance = startUtterance(suspectId, voice, sentences.iterable);
+    const utterance = startUtterance(suspectId, line.speak, sentences.iterable);
     const spoken: string[] = [];
     const spokenText = () => spoken.join(" ");
 
@@ -201,16 +209,20 @@ export function createSession(deps: SessionDeps) {
       if (outcome.rejectedReveals.length) deps.onEvent?.("rejected_reveal", { suspectId, clueIds: outcome.rejectedReveals });
       if (heard !== null) currentGame.interrupted(heard);
       if (outcome.newClues.length) deps.send({ type: "clues", clues: outcome.newClues });
-      if (outcome.hungUp) endCall(); // the engine already dropped the call; stop listening now
+      // The engine already dropped the call: stop listening now, but keep the line for the exit line.
+      if (outcome.hungUp) endCall({ keepLine: true });
       sendState();
       return outcome;
     }
 
     /** What happens once the suspect has finished speaking. */
     async function afterSpeech(outcome: ReturnType<typeof applyOutcome> | null) {
-      if (outcome?.exitLine && !utterance.signal.aborted) await speakLine(suspectId, voice, outcome.exitLine);
-      // The click of the receiver comes after their last word, not before.
-      if (outcome?.hungUp) deps.send({ type: "call", suspectId, status: "ended", reason: "suspect" });
+      if (outcome?.hungUp) {
+        if (outcome.exitLine && !utterance.signal.aborted) await speakLine(suspectId, line.speak, outcome.exitLine);
+        line.close();
+        // The click of the receiver comes after their last word, not before.
+        deps.send({ type: "call", suspectId, status: "ended", reason: "suspect" });
+      }
       if (utterance.signal.aborted || !outcome) return;
       if (outcome.hint) {
         deps.send({ type: "hint", text: outcome.hint });
@@ -241,7 +253,7 @@ export function createSession(deps: SessionDeps) {
   /** A typed or spoken question. Too short to mean anything gets a scripted "say again". */
   function ask(text: string) {
     if (!call) return error("no_call", "Plug into a line before asking questions.");
-    if (text.trim().length < MIN_QUESTION_CHARS) return void speakLine(call.suspectId, call.voice, DIDNT_CATCH);
+    if (text.trim().length < MIN_QUESTION_CHARS) return void speakLine(call.suspectId, call.line.speak, DIDNT_CATCH);
     deps.send({ type: "heard", text });
     runTurn(text);
   }
@@ -269,7 +281,7 @@ export function createSession(deps: SessionDeps) {
         endCall();
         callsMade++;
         lastDialAt = now();
-        call = { suspectId: msg.suspectId, voice: dialed.voice };
+        call = { suspectId: msg.suspectId, voice: dialed.voice, line: deps.tts.openLine(dialed.voice) };
         const timedOutCall = call;
         callTimer = setTimeout(() => {
           if (call !== timedOutCall) return;
@@ -290,7 +302,7 @@ export function createSession(deps: SessionDeps) {
         });
         deps.send({ type: "call", suspectId: msg.suspectId, status: "connected" });
         sendState();
-        if (dialed.greeting) void speakLine(msg.suspectId, dialed.voice, dialed.greeting);
+        if (dialed.greeting) void speakLine(msg.suspectId, call.line.speak, dialed.greeting);
         return;
       }
       case "ptt_start":
@@ -328,12 +340,14 @@ export function createSession(deps: SessionDeps) {
     }
   }
 
-  function endCall() {
+  /** Hangs up: stops listening and, unless the suspect has a last word to say, closes their line. */
+  function endCall(opts: { keepLine?: boolean } = {}) {
     if (callTimer) clearTimeout(callTimer);
     callTimer = null;
     stt?.close();
     stt = null;
     talking = false;
+    if (!opts.keepLine) call?.line.close();
     call = null;
   }
 

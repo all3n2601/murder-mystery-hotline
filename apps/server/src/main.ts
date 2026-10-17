@@ -45,6 +45,8 @@ const admission = createAdmission({
 });
 
 const app = Fastify({ logger: { level: "info" } });
+// One bad promise in one player's call must never take every other call down with it.
+process.on("unhandledRejection", (err) => app.log.error({ err }, "unhandled rejection"));
 await app.register(websocket, { options: { maxPayload: 64 * 1024 } });
 
 const registry = createRegistry({

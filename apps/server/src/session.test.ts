@@ -84,6 +84,28 @@ describe("call session limits", () => {
 });
 
 describe("call session", () => {
+  it("speaks every reply in a call over one TTS line, opened on dial and closed on hang-up", async () => {
+    const s = setup({ replies: [["One."], ["Two."], ["Three."]] });
+    await onCallWith(s);
+    for (const q of ["q1", "q2", "q3"]) {
+      await s.session.handle({ type: "ask", text: q });
+      await s.session.idle();
+    }
+    expect(s.tts.lines).toEqual([{ voice: "mary", closed: false }]);
+    await s.session.handle({ type: "hangup" });
+    expect(s.tts.lines).toEqual([{ voice: "mary", closed: true }]);
+  });
+
+  it("closes the old line when the player dials someone else", async () => {
+    const s = setup();
+    await onCallWith(s, "cook");
+    await s.session.handle({ type: "dial", suspectId: "butler" });
+    expect(s.tts.lines).toEqual([
+      { voice: "mary", closed: true },
+      { voice: "george", closed: false },
+    ]);
+  });
+
   it("re-sends the case, the notebook and the state when a player reconnects", async () => {
     const s = setup({ replies: [["Crumbs.\n###META\n", '{"reveal":["crumbs"]}']] });
     await onCallWith(s);
