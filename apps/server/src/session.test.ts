@@ -1,27 +1,41 @@
 import { loadCase, type CasePack } from "@mmh/engine";
 import { fixtureCase } from "@mmh/engine/test-fixture";
 import { describe, expect, it } from "vitest";
-import { createSession } from "./session.js";
+import { createSession, type SessionLimits } from "./session.js";
 import { fakeLlm, fakeStt, fakeTts, recorder } from "./test-fakes.js";
 
-function pack(): CasePack {
-  const r = loadCase(fixtureCase());
+function pack(mutate?: (c: ReturnType<typeof fixtureCase>) => void): CasePack {
+  const raw = fixtureCase();
+  mutate?.(raw);
+  const r = loadCase(raw);
   if (!r.ok) throw new Error(r.errors.join("\n"));
   return r.pack;
 }
 
-function setup(opts: { replies?: string[][]; tts?: Parameters<typeof fakeTts>[0] } = {}) {
+function setup(
+  opts: {
+    replies?: string[][];
+    tts?: Parameters<typeof fakeTts>[0];
+    mutate?: (c: ReturnType<typeof fixtureCase>) => void;
+    onEvent?: (event: string, data: object) => void;
+    limits?: Partial<SessionLimits>;
+    now?: () => number;
+  } = {},
+) {
   const out = recorder();
   const llm = fakeLlm(opts.replies ?? []);
   const tts = fakeTts(opts.tts);
   const stt = fakeStt();
   const session = createSession({
-    cases: new Map([["fixture", pack()]]),
+    cases: new Map([["fixture", pack(opts.mutate)]]),
     llm: llm.port,
     tts: tts.port,
     stt: stt.port,
     send: out.send,
     sendAudio: out.sendAudio,
+    onEvent: opts.onEvent,
+    limits: { minDialGapMs: 0, ...opts.limits }, // most tests redial instantly
+    now: opts.now,
   });
   return { session, out, llm, tts, stt };
 }
@@ -31,7 +45,81 @@ async function onCallWith(s: ReturnType<typeof setup>, suspectId = "cook") {
   await s.session.handle({ type: "dial", suspectId });
 }
 
+describe("call session limits", () => {
+  it("refuses dials beyond the per-game cap, and dials closer together than the minimum gap", async () => {
+    let now = 0;
+    const s = setup({ limits: { maxCalls: 2, minDialGapMs: 3000 }, now: () => now });
+    await s.session.handle({ type: "start", caseId: "fixture" });
+    await s.session.handle({ type: "dial", suspectId: "cook" });
+    await s.session.handle({ type: "dial", suspectId: "butler" }); // too soon
+    expect(s.out.ofType("error").at(-1)?.code).toBe("dial_too_fast");
+    now += 3000;
+    await s.session.handle({ type: "dial", suspectId: "butler" });
+    now += 3000;
+    await s.session.handle({ type: "dial", suspectId: "cook" }); // third call
+    expect(s.out.ofType("error").at(-1)?.code).toBe("call_limit");
+    expect(s.out.ofType("call").filter((c) => c.status === "connected")).toHaveLength(2);
+  });
+
+  it("ends a call that runs past the maximum length, closing STT so billing stops", async () => {
+    const s = setup({ limits: { maxCallMs: 30 } });
+    await onCallWith(s);
+    await new Promise((r) => setTimeout(r, 60));
+    expect(s.out.ofType("call").at(-1)).toEqual({ type: "call", suspectId: "cook", status: "ended", reason: "timeout" });
+    expect(s.stt.closed()).toBe(1);
+  });
+
+  it("stops listening once one push-to-talk press exceeds the audio cap", async () => {
+    const s = setup({ replies: [["Go on."]], limits: { maxTalkBytes: 4 } });
+    await onCallWith(s);
+    s.stt.willHear("A very long question");
+    await s.session.handle({ type: "ptt_start" });
+    s.session.audio(new Uint8Array(3));
+    s.session.audio(new Uint8Array(3)); // over the cap: the turn ends here
+    s.session.audio(new Uint8Array(3)); // dropped
+    await s.session.idle();
+    expect(s.stt.audio.map((a) => a.length)).toEqual([3, 3]);
+    expect(s.out.ofType("heard")).toEqual([{ type: "heard", text: "A very long question" }]);
+  });
+});
+
 describe("call session", () => {
+  it("re-sends the case, the notebook and the state when a player reconnects", async () => {
+    const s = setup({ replies: [["Crumbs.\n###META\n", '{"reveal":["crumbs"]}']] });
+    await onCallWith(s);
+    await s.session.handle({ type: "ask", text: "Anything?" });
+    await s.session.idle();
+    s.out.messages.length = 0;
+    s.session.resync();
+    expect(s.out.messages.map((m) => m.type)).toEqual(["case", "clues", "state"]);
+    expect(s.out.ofType("clues")[0]!.clues.map((c) => c.id)).toEqual(["log", "crumbs"]);
+  });
+
+  it("has the narrator prompt an accusation when the question budget runs out", async () => {
+    const s = setup({ replies: Array.from({ length: 6 }, () => ["Busy."]) }); // budget 6
+    await onCallWith(s);
+    for (let i = 0; i < 6; i++) {
+      await s.session.handle({ type: "ask", text: `question ${i}` });
+      await s.session.idle();
+    }
+    expect(s.tts.spoken.filter((x) => x.voice === "anna").map((x) => x.text)).toContain(
+      "That's the last of your questions, detective. Time to name your killer.",
+    );
+  });
+
+  it("answers an empty or one-character turn with a scripted line, without asking the LLM", async () => {
+    const s = setup();
+    await onCallWith(s);
+    await s.session.handle({ type: "ask", text: "k" });
+    await s.session.idle();
+    await s.session.handle({ type: "ptt_start" });
+    s.stt.willHear(""); // a tap on the talk button with no words
+    await s.session.handle({ type: "ptt_end" });
+    await s.session.idle();
+    expect(s.tts.spoken.map((x) => x.text)).toEqual(["Didn't catch that, detective.", "Didn't catch that, detective."]);
+    expect(s.llm.requests).toHaveLength(0);
+  });
+
   it("doesn't treat a finished reply as interrupted when the player hangs up afterwards", async () => {
     const s = setup({ replies: [["Goodnight."]] });
     await onCallWith(s);
@@ -43,7 +131,12 @@ describe("call session", () => {
   });
 
   it("speaks the scripted greeting when redialing someone who hung up", async () => {
-    const s = setup({ replies: [["Goodbye!\n###META\n", '{"hang_up":true}']] });
+    const s = setup({
+      replies: [["Goodbye!\n###META\n", '{"pressure_change":3}']],
+      mutate: (c) => {
+        c.characters[1]!.startNerves = 9;
+      },
+    });
     await onCallWith(s, "butler");
     await s.session.handle({ type: "ask", text: "Confess." });
     await s.session.idle();
@@ -52,13 +145,35 @@ describe("call session", () => {
     expect(s.tts.spoken.at(-1)).toEqual({ voice: "george", text: "You again?" });
   });
 
-  it("tells the player the lines are busy while their reply waits for a TTS slot", async () => {
+  it("tells the player the lines are busy while any utterance waits for a TTS slot, narration included", async () => {
     const s = setup({ replies: [["Hold on."]] });
     s.tts.port.speak = async ({ onQueued }) => onQueued?.();
     await onCallWith(s);
     await s.session.handle({ type: "ask", text: "Hello?" });
     await s.session.idle();
-    expect(s.out.ofType("call").at(-1)).toEqual({ type: "call", suspectId: "cook", status: "busy" });
+    await s.session.handle({ type: "accuse", suspectId: "cook", evidence: [] }); // narrator, no call
+    await s.session.idle();
+    expect(s.out.ofType("busy")).toEqual([
+      { type: "busy", utteranceId: 1 },
+      { type: "busy", utteranceId: 2 },
+    ]);
+  });
+
+  it("forwards TTS word timings so captions can follow the voice", async () => {
+    const s = setup({ replies: [["Busy cooking."]] });
+    await onCallWith(s);
+    await s.session.handle({ type: "ask", text: "Where?" });
+    await s.session.idle();
+    expect(s.out.ofType("words")).toEqual([{ type: "words", utteranceId: 1, words: [{ word: "Busy cooking.", start: 0, end: 100 }] }]);
+  });
+
+  it("logs a clue the model tried to reveal before it was allowed", async () => {
+    const logged: unknown[] = [];
+    const s = setup({ replies: [["Chocolate.\n###META\n", '{"reveal":["slip"]}']], onEvent: (e, d) => logged.push([e, d]) });
+    await onCallWith(s, "butler");
+    await s.session.handle({ type: "ask", text: "What flavour?" });
+    await s.session.idle();
+    expect(logged).toEqual([["rejected_reveal", { suspectId: "butler", clueIds: ["slip"] }]]);
   });
 
   it("delivers the verdict and has the narrator read the ending", async () => {
@@ -83,11 +198,17 @@ describe("call session", () => {
   });
 
   it("ends the call when the suspect hangs up, and refuses questions on a dead line", async () => {
-    const s = setup({ replies: [["Get off my line!\n###META\n", '{"hang_up":true}']] });
+    const s = setup({
+      replies: [["Get off my line!\n###META\n", '{"pressure_change":3}']],
+      mutate: (c) => {
+        c.characters[1]!.startNerves = 9;
+      },
+    });
     await onCallWith(s, "butler");
     await s.session.handle({ type: "ask", text: "You did it." });
     await s.session.idle();
     expect(s.out.ofType("call").at(-1)).toEqual({ type: "call", suspectId: "butler", status: "ended", reason: "suspect" });
+    expect(s.tts.spoken.at(-1)).toEqual({ voice: "george", text: "I've said all I'm going to say. Goodnight." });
     expect(s.stt.closed()).toBe(1);
     await s.session.handle({ type: "ask", text: "Hello?" });
     expect(s.out.ofType("error").at(-1)?.code).toBe("no_call");

@@ -54,8 +54,8 @@ describe("server messages", () => {
     expect(parseServerMessage(JSON.stringify(msg))).toEqual({ ok: true, message: msg });
   });
 
-  it("accepts a busy call status while the TTS pool is full", () => {
-    expect(parseServerMessage('{"type":"call","suspectId":"leo","status":"busy"}').ok).toBe(true);
+  it("accepts a busy notice for an utterance waiting on the TTS pool", () => {
+    expect(parseServerMessage('{"type":"busy","utteranceId":4}').ok).toBe(true);
   });
 
   it("accepts a verdict with stars and rejects an unknown outcome", () => {

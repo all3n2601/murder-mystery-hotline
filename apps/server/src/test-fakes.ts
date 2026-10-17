@@ -23,7 +23,7 @@ export function fakeTts(opts: { fail?: boolean; msPerSentence?: number } = {}) {
   const spoken: { voice: string; text: string }[] = [];
   let aborts = 0;
   const port: TtsPort = {
-    async speak({ voice, sentences, signal, onAudio }) {
+    async speak({ voice, sentences, signal, onAudio, onWords }) {
       if (opts.fail) throw new Error("tts down");
       for await (const text of sentences) {
         if (signal.aborted) break;
@@ -31,6 +31,7 @@ export function fakeTts(opts: { fail?: boolean; msPerSentence?: number } = {}) {
         await new Promise((r) => setTimeout(r, opts.msPerSentence ?? 1));
         if (signal.aborted) break;
         onAudio(new TextEncoder().encode(text)); // "audio" is the sentence bytes, so tests can read it
+        onWords?.([{ word: text, start: 0, end: 100 }]);
       }
       if (signal.aborted) aborts++;
     },

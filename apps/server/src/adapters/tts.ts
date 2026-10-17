@@ -157,7 +157,10 @@ export function createAssemblyTts(opts: {
         await finished;
       } finally {
         signal.removeEventListener("abort", onAbort);
-        send({ type: "Terminate" });
+        // A barge-in can land before the socket opens; the server still counts that session,
+        // so terminate it as soon as it does.
+        if (ws.readyState === WebSocket.CONNECTING) ws.once("open", () => ws.send(JSON.stringify({ type: "Terminate" })));
+        else send({ type: "Terminate" });
         ws.removeAllListeners("close");
         ws.once("close", markClosed);
         if (ws.readyState === WebSocket.CLOSED) markClosed();

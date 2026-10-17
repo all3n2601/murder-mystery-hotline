@@ -1,17 +1,17 @@
+import { Id } from "@mmh/protocol";
 import { z } from "zod";
+import { NERVES } from "./nerves.js";
 import { isKnownVoice } from "./voices.js";
 
 // Case pack schema and loader. A pack that fails here never reaches a player.
-
-const Id = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/i);
 
 const CaseClue = z.object({
   id: Id,
   title: z.string().min(1),
   text: z.string().min(1),
   topics: z.array(z.string().min(1)).min(1),
-  // Nerves needed before the suspect will give this up. 10 means hung up, so 9 is the ceiling.
-  minPressure: z.number().int().min(0).max(9).default(0),
+  // Nerves needed before the suspect will give this up.
+  minNerves: z.number().int().min(NERVES.MIN).max(NERVES.HIGHEST_GATE).default(0),
   requires: z.array(Id).default([]),
   // Phrases that count as revealing the clue if the model forgets to tag it in META.
   fallbackPhrases: z.array(z.string().min(1)).default([]),
@@ -25,12 +25,14 @@ const Character = z.object({
   voice: z.string().min(1),
   persona: z.string().min(1),
   motive: z.string().nullable(),
-  startNerves: z.number().int().min(0).max(9).default(2),
+  startNerves: z.number().int().min(NERVES.MIN).max(NERVES.HIGHEST_GATE).default(2),
   truth: z.object({ guarded: z.string().min(1), shaken: z.string().min(1) }),
   lies: z.array(z.string()).default([]),
+  /** Said just before they slam the phone down. */
+  hangUpLine: z.string().min(1).default("I've said all I'm going to say. Goodnight."),
   clues: z.array(CaseClue).default([]),
   confession: z
-    .object({ minNerves: z.number().int().min(0).max(9), minKeyClues: z.number().int().min(0), text: z.string().min(1) })
+    .object({ minNerves: z.number().int().min(NERVES.MIN).max(NERVES.HIGHEST_GATE), minKeyClues: z.number().int().min(0), text: z.string().min(1) })
     .optional(),
 });
 
@@ -92,7 +94,7 @@ function validateCase(pack: CasePack): string[] {
   for (const k of pack.solution.keyClues) if (!clueIds.has(k)) errors.push(`key clue ${k} does not exist`);
 
   // Reachability: starting evidence is known; a clue unlocks once all its requires are known.
-  // Pressure can always be raised to 9, so only requires chains can make a clue unreachable.
+  // Nerves can always be raised to the highest gate, so only requires chains make a clue unreachable.
   const reachable = new Set(pack.startingEvidence.map((e) => e.id));
   const allClues = pack.characters.flatMap((c) => c.clues);
   for (let grew = true; grew; ) {
@@ -118,7 +120,7 @@ function validateCase(pack: CasePack): string[] {
   const motives = pack.characters.filter((c) => c.motive !== null).length;
   if (motives < 2) errors.push(`only ${motives} character has a motive; a fair mystery needs at least 2`);
 
-  const reachableKeys =pack.solution.keyClues.filter((k) => reachable.has(k)).length;
+  const reachableKeys = pack.solution.keyClues.filter((k) => reachable.has(k)).length;
   if (reachableKeys < pack.solution.minKeyClues) {
     errors.push(`only ${reachableKeys} key clues are reachable, but minKeyClues is ${pack.solution.minKeyClues}`);
   }

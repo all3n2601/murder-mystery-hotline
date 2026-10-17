@@ -50,7 +50,7 @@ export function fixtureCase(): z.input<typeof CasePackSchema> {
             title: "The slip",
             text: "Mentions the cake was chocolate, which nobody told him.",
             topics: ["cake flavour"],
-            minPressure: 6,
+            minNerves: 6,
             requires: ["crumbs"],
           },
         ],

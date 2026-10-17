@@ -1,7 +1,9 @@
+import type { ChatMessage, Word } from "@mmh/protocol";
+
 // The three external services a call session talks to. Real adapters wrap AssemblyAI;
 // tests pass fakes. Keep these narrow: each method is one thing the session needs.
 
-export type Word = { word: string; start: number; end: number };
+export type { Word };
 
 export interface SttPort {
   /** Opens a streaming transcription session for one phone call. */
@@ -33,5 +35,5 @@ export interface TtsPort {
 
 export interface LlmPort {
   /** Streams a reply's text chunks. */
-  stream(opts: { system: string; messages: { role: "user" | "assistant"; content: string }[]; signal: AbortSignal }): AsyncIterable<string>;
+  stream(opts: { system: string; messages: ChatMessage[]; signal: AbortSignal }): AsyncIterable<string>;
 }

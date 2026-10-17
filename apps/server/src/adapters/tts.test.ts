@@ -78,6 +78,18 @@ describe("AssemblyAI TTS adapter", () => {
     expect(second).toEqual(["Next."]);
   });
 
+  it("still terminates the server session when aborted while the socket is connecting", async () => {
+    server = await startFakeTtsServer();
+    const tts = createAssemblyTts({ apiKey: "k", url: server.url });
+    const abort = new AbortController();
+    const speaking = tts.speak({ voice: "eve", sentences: sentences("Never said."), signal: abort.signal, onAudio: () => {} });
+    await new Promise((r) => setImmediate(r)); // the socket exists but hasn't opened yet
+    abort.abort();
+    await speaking;
+    await vi.waitFor(() => expect(server!.log[0]?.received).toContain("Terminate"));
+    await vi.waitFor(() => expect(server!.openNow()).toBe(0));
+  });
+
   it("rejects on a server error frame and still frees the slot", async () => {
     server = await startFakeTtsServer({ maxConcurrent: 1, failWith: "Unsupported preset voice 'zz'" });
     const tts = createAssemblyTts({ apiKey: "k", url: server.url, maxConcurrent: 1 });

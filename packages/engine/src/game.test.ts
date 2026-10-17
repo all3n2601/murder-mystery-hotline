@@ -144,11 +144,91 @@ describe("game", () => {
     expect(game.state().activeCall).toBeNull();
   });
 
+  it("keeps a cornered culprit on the line so pressure brings a confession, not a hang-up", () => {
+    const game = newGame((c) => {
+      c.characters[1]!.startNerves = 9;
+    });
+    game.dial("cook");
+    game.prepareTurn("q");
+    game.recordReply({ spoken: "Crumbs.", meta: meta({ reveal: ["crumbs"] }) });
+    game.dial("butler");
+    game.prepareTurn("q");
+    game.recordReply({ spoken: "Silver.", meta: meta({ reveal: ["alibi"] }) }); // 2 key clues: cornered
+    game.prepareTurn("Confess!");
+    expect(game.recordReply({ spoken: "Never!", meta: meta({ pressure_change: 3 }) })).toMatchObject({ hungUp: false, nerves: 9 });
+  });
+
+  it("sends the LLM at most the last 40 messages of a suspect's history", () => {
+    const game = newGame((c) => {
+      c.questionBudget = 100;
+    });
+    game.dial("cook");
+    for (let i = 0; i < 30; i++) {
+      game.prepareTurn(`q${i}`);
+      game.recordReply({ spoken: `a${i}`, meta: meta({}) });
+    }
+    const { messages } = game.prepareTurn("latest");
+    expect(messages).toHaveLength(40);
+    expect(messages.at(-1)).toEqual({ role: "user", content: "latest" });
+    expect(messages[0]).toEqual({ role: "assistant", content: "a10" }); // oldest turns dropped
+  });
+
+  it("flags the moment the question budget runs out, once", () => {
+    const game = newGame(); // budget 6
+    game.dial("cook");
+    const spent: boolean[] = [];
+    for (let i = 0; i < 7; i++) {
+      game.prepareTurn(`q${i}`);
+      spent.push(game.recordReply({ spoken: "Busy.", meta: meta({}) }).budgetSpent);
+    }
+    expect(spent).toEqual([false, false, false, false, false, true, false]);
+  });
+
+  it("gives a hang-up a scripted exit line: the character's own, or a default", () => {
+    const hangUp = (mutate?: (c: ReturnType<typeof fixtureCase>) => void) => {
+      const game = newGame((c) => {
+        c.characters[1]!.startNerves = 9;
+        mutate?.(c);
+      });
+      game.dial("butler");
+      game.prepareTurn("q");
+      return game.recordReply({ spoken: "Enough!", meta: meta({ pressure_change: 3 }) }).exitLine;
+    };
+    expect(hangUp()).toBe("I've said all I'm going to say. Goodnight.");
+    expect(
+      hangUp((c) => {
+        c.characters[1]!.hangUpLine = "Good evening, sir.";
+      }),
+    ).toBe("Good evening, sir.");
+  });
+
+  it("lists the whole notebook, starting evidence first, so a reconnecting player gets it back", () => {
+    const game = newGame();
+    game.dial("cook");
+    game.prepareTurn("q");
+    game.recordReply({ spoken: "Crumbs.", meta: meta({ reveal: ["crumbs"] }) });
+    expect(game.notebook().map((c) => [c.id, c.source])).toEqual([
+      ["log", "start"],
+      ["crumbs", "cook"],
+    ]);
+  });
+
+  it("only hangs up at nerves 10, whatever the model asks for", () => {
+    const game = newGame();
+    game.dial("butler"); // nerves 2
+    game.prepareTurn("q");
+    const outcome = game.recordReply({ spoken: "Goodbye!", meta: meta({ hang_up: true, pressure_change: 1 }) });
+    expect(outcome).toMatchObject({ hungUp: false, nerves: 3 });
+    expect(game.state().activeCall).toBe("butler");
+  });
+
   it("greets a redial after a hang-up with a scripted line and nerves reset to 5", () => {
     const game = newGame();
     expect(game.dial("butler")).toMatchObject({ ok: true, greeting: null });
-    game.prepareTurn("q");
-    game.recordReply({ spoken: "Goodbye!", meta: meta({ hang_up: true }) });
+    for (let i = 0; i < 3; i++) {
+      game.prepareTurn("q");
+      game.recordReply({ spoken: "Stop it!", meta: meta({ pressure_change: 3 }) }); // 2 -> 5 -> 8 -> 10
+    }
     const redial = game.dial("butler");
     expect(redial).toMatchObject({ ok: true, greeting: "You again?" });
     expect(game.state().nerves.butler).toBe(5);

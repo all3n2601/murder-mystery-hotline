@@ -1,19 +1,24 @@
-import type { Clue, PublicCaseState, VerdictOutcome } from "@mmh/protocol";
+import { STARTING_EVIDENCE, type ChatMessage, type Clue, type PublicCaseState, type VerdictOutcome } from "@mmh/protocol";
 import { z } from "zod";
 import type { CaseCharacter, CaseClueDef, CasePack } from "./case.js";
+import { applyPressure, NERVES } from "./nerves.js";
 import { buildSystemPrompt } from "./prompt.js";
 
 // One player's game: what they know, how rattled each suspect is, and the rules that decide
 // what a suspect may reveal. Pure state, no I/O; the server feeds it turns.
 
-const REDIAL_NERVES = 5;
 const HINT_AFTER_FRUITLESS = 4;
+const REDIAL_GREETING = "You again?";
+/** Keeps prompts short and cheap on long interrogations. */
+const MAX_HISTORY_MESSAGES = 40;
 
-export type ChatMessage = { role: "user" | "assistant"; content: string };
+export type { ChatMessage };
 
 export function createGame(pack: CasePack) {
   const nerves = new Map(pack.characters.map((c) => [c.id, c.startNerves]));
   const found = new Set(pack.startingEvidence.map((e) => e.id));
+  // Everything the player has found, in the order they found it.
+  const notebook: Clue[] = pack.startingEvidence.map((e) => ({ ...e, source: STARTING_EVIDENCE }));
   const history = new Map<string, ChatMessage[]>(pack.characters.map((c) => [c.id, []]));
   let active: CaseCharacter | null = null;
   let pendingQuestion: string | null = null;
@@ -22,8 +27,15 @@ export function createGame(pack: CasePack) {
   const hintsGiven = new Set<string>();
   let fruitless = 0; // questions in a row with no new clue
 
-  const character = (id: string) => pack.characters.find((c) => c.id === id);
-  const isEligible = (k: CaseClueDef, n: number) => k.minPressure <= n && k.requires.every((r) => found.has(r));
+  const findCharacter = (id: string) => pack.characters.find((c) => c.id === id);
+  const isEligible = (clue: CaseClueDef, currentNerves: number) =>
+    clue.minNerves <= currentNerves && clue.requires.every((r) => found.has(r));
+
+  /** Rattled enough and faced with enough key evidence that a push brings the confession. */
+  const isCornered = (suspect: CaseCharacter, currentNerves: number) =>
+    !!suspect.confession &&
+    currentNerves >= suspect.confession.minNerves &&
+    pack.solution.keyClues.filter((id) => found.has(id)).length >= suspect.confession.minKeyClues;
 
   function requireActive(): CaseCharacter {
     if (!active) throw new Error("no active call");
@@ -39,96 +51,104 @@ export function createGame(pack: CasePack) {
         briefing: pack.briefing,
         questionBudget: pack.questionBudget,
         suspects: pack.characters.map((c) => ({ id: c.id, name: c.name, role: c.role, line: c.line })),
-        startingEvidence: pack.startingEvidence.map((e) => ({ ...e, source: "start" })),
+        startingEvidence: notebook.filter((c) => c.source === STARTING_EVIDENCE),
       };
     },
 
     dial(suspectId: string) {
-      const c = character(suspectId);
-      if (!c) return { ok: false as const, reason: "unknown_suspect" };
-      active = c;
+      const suspect = findCharacter(suspectId);
+      if (!suspect) return { ok: false as const, reason: "unknown_suspect" };
+      active = suspect;
       let greeting: string | null = null;
-      if (hungUpOn.delete(c.id)) {
-        nerves.set(c.id, REDIAL_NERVES);
-        greeting = "You again?";
-        history.get(c.id)!.push({ role: "assistant", content: greeting });
+      if (hungUpOn.delete(suspect.id)) {
+        nerves.set(suspect.id, NERVES.REDIAL);
+        greeting = REDIAL_GREETING;
+        history.get(suspect.id)!.push({ role: "assistant", content: greeting });
       }
-      return { ok: true as const, voice: c.voice, name: c.name, greeting };
+      return { ok: true as const, voice: suspect.voice, greeting };
     },
 
     /** Builds the LLM request for the active suspect answering this question. */
     prepareTurn(question: string) {
-      const c = requireActive();
-      const n = nerves.get(c.id)!;
-      const unrevealed = c.clues.filter((k) => !found.has(k.id));
+      const suspect = requireActive();
+      const current = nerves.get(suspect.id)!;
+      const unrevealed = suspect.clues.filter((clue) => !found.has(clue.id));
       const system = buildSystemPrompt({
         pack,
-        character: c,
-        nerves: n,
-        eligible: unrevealed.filter((k) => isEligible(k, n)),
-        locked: unrevealed.filter((k) => !isEligible(k, n)),
-        confessionAvailable:
-          !!c.confession &&
-          n >= c.confession.minNerves &&
-          pack.solution.keyClues.filter((k) => found.has(k)).length >= c.confession.minKeyClues,
+        character: suspect,
+        nerves: current,
+        eligible: unrevealed.filter((clue) => isEligible(clue, current)),
+        locked: unrevealed.filter((clue) => !isEligible(clue, current)),
+        confessionAvailable: isCornered(suspect, current),
       });
-      const messages: ChatMessage[] = [...history.get(c.id)!, { role: "user", content: question }];
+      const messages: ChatMessage[] = [...history.get(suspect.id)!, { role: "user" as const, content: question }].slice(
+        -MAX_HISTORY_MESSAGES,
+      );
       pendingQuestion = question;
       return { system, messages };
     },
 
     /** Applies the suspect's finished reply: new clues, nerves, hang-up. */
     recordReply(reply: { spoken: string; meta: string | null }) {
-      const c = requireActive();
-      const n = nerves.get(c.id)!;
-      const m = parseMeta(reply.meta);
+      const suspect = requireActive();
+      const before = nerves.get(suspect.id)!;
+      const meta = parseMeta(reply.meta);
 
       const newClues: Clue[] = [];
       const rejectedReveals: string[] = [];
       // Models often say a clue without tagging it; the case's fallback phrases catch that.
       const spoken = reply.spoken.toLowerCase();
-      const untagged = c.clues
-        .filter((k) => !m.reveal.includes(k.id) && isEligible(k, n))
-        .filter((k) => k.fallbackPhrases.some((p) => spoken.includes(p.toLowerCase())))
-        .map((k) => k.id);
-      for (const id of [...m.reveal, ...untagged]) {
-        const clue = c.clues.find((k) => k.id === id);
+      const untagged = suspect.clues
+        .filter((clue) => !meta.reveal.includes(clue.id) && isEligible(clue, before))
+        .filter((clue) => clue.fallbackPhrases.some((p) => spoken.includes(p.toLowerCase())))
+        .map((clue) => clue.id);
+      for (const id of [...meta.reveal, ...untagged]) {
+        const clue = suspect.clues.find((k) => k.id === id);
         if (!clue || found.has(id)) continue;
-        if (!isEligible(clue, n)) {
+        if (!isEligible(clue, before)) {
           rejectedReveals.push(id);
           continue;
         }
         found.add(id);
-        newClues.push({ id: clue.id, title: clue.title, text: clue.text, source: c.id });
+        newClues.push({ id: clue.id, title: clue.title, text: clue.text, source: suspect.id });
+        notebook.push(newClues.at(-1)!);
       }
 
-      history.get(c.id)!.push({ role: "user", content: pendingQuestion ?? "" }, { role: "assistant", content: reply.spoken });
+      history.get(suspect.id)!.push({ role: "user", content: pendingQuestion ?? "" }, { role: "assistant", content: reply.spoken });
       pendingQuestion = null;
       questionsAsked++;
 
-      const delta = Math.max(-2, Math.min(3, Math.round(m.pressure_change)));
-      const next = Math.max(0, Math.min(10, n + delta));
-      nerves.set(c.id, next);
-      const hungUp = next >= 10 || m.hang_up;
+      let after = applyPressure(before, meta.pressure_change);
+      // A cornered culprit stays on the line: the next push brings the confession, not a click.
+      if (isCornered(suspect, Math.max(before, after))) after = Math.min(after, NERVES.HIGHEST_GATE);
+      nerves.set(suspect.id, after);
+      const hungUp = after >= NERVES.HANG_UP;
       if (hungUp) {
-        hungUpOn.add(c.id);
+        hungUpOn.add(suspect.id);
         active = null;
       }
       fruitless = newClues.length ? 0 : fruitless + 1;
       let hint: string | null = null;
       if (fruitless >= HINT_AFTER_FRUITLESS) {
-        const ready = pack.hints.find((h) => !hintsGiven.has(h.id) && h.afterClues.every((k) => found.has(k)));
+        const ready = pack.hints.find((h) => !hintsGiven.has(h.id) && h.afterClues.every((id) => found.has(id)));
         if (ready) {
           hintsGiven.add(ready.id);
           hint = ready.text;
           fruitless = 0;
         }
       }
-      return { newClues, rejectedReveals, nerves: next, hungUp, hint };
+      // The budget is soft: questions keep working, but the narrator nudges once at zero.
+      const budgetSpent = questionsAsked === pack.questionBudget;
+      const exitLine = hungUp ? suspect.hangUpLine : null;
+      return { newClues, rejectedReveals, nerves: after, hungUp, exitLine, hint, budgetSpent };
     },
 
     hangup() {
       active = null;
+    },
+
+    notebook(): Clue[] {
+      return [...notebook];
     },
 
     /** The player talked over the active suspect: keep only the words they heard. */
@@ -141,7 +161,7 @@ export function createGame(pack: CasePack) {
     /** Final accusation. Only evidence the player actually found counts. */
     accuse(suspectId: string, evidence: string[]) {
       const { solution } = pack;
-      const keyCited = new Set(evidence.filter((e) => found.has(e) && solution.keyClues.includes(e)));
+      const keyCited = new Set(evidence.filter((id) => found.has(id) && solution.keyClues.includes(id)));
       const rightCulprit = suspectId === solution.culprit;
       const outcome: VerdictOutcome = !rightCulprit
         ? "wrong"
@@ -173,19 +193,18 @@ export function createGame(pack: CasePack) {
 const Meta = z.object({
   reveal: z.array(z.string()).catch([]),
   pressure_change: z.number().catch(0),
-  hang_up: z.boolean().catch(false),
 });
 
 /** A missing or malformed META block means "nothing happened", never an error. */
 function parseMeta(raw: string | null): z.infer<typeof Meta> {
-  const fallback = { reveal: [], pressure_change: 0, hang_up: false };
-  if (!raw) return fallback;
+  const nothing = { reveal: [], pressure_change: 0 };
+  if (!raw) return nothing;
   try {
     const json = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
     const parsed = Meta.safeParse(json);
-    return parsed.success ? parsed.data : fallback;
+    return parsed.success ? parsed.data : nothing;
   } catch {
-    return fallback;
+    return nothing;
   }
 }
 

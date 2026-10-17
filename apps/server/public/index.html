@@ -75,7 +75,12 @@ const log = (text, cls = "") => {
 const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/game`);
 ws.binaryType = "arraybuffer";
 const send = (m) => ws.readyState === 1 && ws.send(JSON.stringify(m));
-ws.onclose = () => log("Connection closed.", "err");
+ws.onclose = () => log("Connection closed. Refresh within 10 minutes to pick the game back up.", "err");
+ws.onopen = () => {
+  let sessionId;
+  try { sessionId = sessionStorage.getItem("hotline-session") ?? undefined; } catch {}
+  send(sessionId ? { type: "hello", sessionId } : { type: "hello" });
+};
 
 // ---- audio out: PCM16 24 kHz frames tagged with an utterance id --------------
 let ctx = null;
@@ -210,53 +215,60 @@ function addClue(c) {
 const nameOf = (id) => suspects.find((s) => s.id === id)?.name ?? (id === "hale" ? "Mrs. Hale" : id);
 const lines = new Map(); // utteranceId -> div
 
+// One handler per server message type (see packages/protocol/src/messages.ts).
+const handlers = {
+  welcome(m) {
+    try { sessionStorage.setItem("hotline-session", m.sessionId); } catch {}
+    if (m.resumed) log("Line restored. Picking up where you left off.", "sys");
+  },
+  case(m) {
+    suspects = m.publicState.suspects;
+    $("briefing").textContent = m.publicState.briefing;
+    $("suspects").innerHTML = "";
+    $("culprit").innerHTML = "";
+    for (const s of suspects) {
+      const b = document.createElement("button");
+      b.textContent = `${s.line}: ${s.name}`;
+      b.title = s.role;
+      b.dataset.id = s.id;
+      b.onclick = () => send({ type: "dial", suspectId: s.id });
+      $("suspects").append(b);
+      $("culprit").append(new Option(s.name, s.id));
+    }
+    m.publicState.startingEvidence.forEach(addClue);
+    log("Case opened. Plug into a line.", "sys");
+  },
+  call(m) {
+    $("callstatus").textContent = `${nameOf(m.suspectId)}: ${m.status}${m.reason ? ` (${m.reason})` : ""}`;
+    document.querySelectorAll("#suspects button").forEach((b) => b.classList.toggle("live", m.status !== "ended" && b.dataset.id === m.suspectId));
+    if (m.status === "ended") log(`— ${nameOf(m.suspectId)} is off the line (${m.reason}) —`, "sys");
+  },
+  partial(m) { $("partial").textContent = `… ${m.text}`; },
+  heard(m) { $("partial").textContent = ""; log(`You: ${m.text}`, "you"); },
+  line(m) {
+    let div = lines.get(m.utteranceId);
+    if (!div) { div = document.createElement("div"); $("log").append(div); lines.set(m.utteranceId, div); }
+    div.textContent = `${nameOf(m.speaker)}: ${m.text}`;
+    $("log").scrollTop = $("log").scrollHeight;
+  },
+  line_end(m) { if (m.interrupted) lines.get(m.utteranceId)?.append(" —(cut off)"); },
+  words() {}, // word timings: the real UI uses these for synced captions
+  stop_audio(m) { stopUtterance(m.utteranceId); },
+  busy() { log("All lines are busy… hold, please.", "sys"); },
+  fallback_speech(m) { speechSynthesis.speak(new SpeechSynthesisUtterance(m.text)); },
+  clues(m) { m.clues.forEach((c) => { const isNew = !document.querySelector(`#notebook input[value="${c.id}"]`); addClue(c); if (isNew) log(`📓 New clue: ${c.title}`, "sys"); }); },
+  hint(m) { log(`Mrs. Hale: ${m.text}`, "sys"); },
+  state(m) {
+    $("state").textContent = `Questions left: ${m.questionsLeft} · Nerves: ${Object.entries(m.nerves).map(([k, v]) => `${nameOf(k)} ${v}/10`).join(", ")}`;
+  },
+  verdict(m) { log(`VERDICT: ${m.outcome} ${"★".repeat(m.stars)}${"☆".repeat(3 - m.stars)}\n${m.solution.explanation}`, "sys"); },
+  error(m) { log(`⚠ ${m.message}`, "err"); },
+};
+
 ws.onmessage = (e) => {
   if (e.data instanceof ArrayBuffer) return playFrame(e.data);
   const m = JSON.parse(e.data);
-  switch (m.type) {
-    case "case":
-      suspects = m.publicState.suspects;
-      $("briefing").textContent = m.publicState.briefing;
-      $("suspects").innerHTML = "";
-      $("culprit").innerHTML = "";
-      for (const s of suspects) {
-        const b = document.createElement("button");
-        b.textContent = `${s.line}: ${s.name}`;
-        b.title = s.role;
-        b.dataset.id = s.id;
-        b.onclick = () => send({ type: "dial", suspectId: s.id });
-        $("suspects").append(b);
-        $("culprit").append(new Option(s.name, s.id));
-      }
-      m.publicState.startingEvidence.forEach(addClue);
-      log("Case opened. Plug into a line.", "sys");
-      break;
-    case "call":
-      $("callstatus").textContent = `${nameOf(m.suspectId)}: ${m.status}${m.reason ? ` (${m.reason})` : ""}`;
-      document.querySelectorAll("#suspects button").forEach((b) => b.classList.toggle("live", m.status !== "ended" && b.dataset.id === m.suspectId));
-      if (m.status === "ended") log(`— ${nameOf(m.suspectId)} hung up (${m.reason}) —`, "sys");
-      if (m.status === "busy") log("All lines are busy… hold, please.", "sys");
-      break;
-    case "partial": $("partial").textContent = `… ${m.text}`; break;
-    case "heard": $("partial").textContent = ""; log(`You: ${m.text}`, "you"); break;
-    case "line": {
-      let div = lines.get(m.utteranceId);
-      if (!div) { div = document.createElement("div"); $("log").append(div); lines.set(m.utteranceId, div); }
-      div.textContent = `${nameOf(m.speaker)}: ${m.text}`;
-      $("log").scrollTop = $("log").scrollHeight;
-      break;
-    }
-    case "line_end": if (m.interrupted) lines.get(m.utteranceId)?.append(" —(cut off)"); break;
-    case "stop_audio": stopUtterance(m.utteranceId); break;
-    case "fallback_speech": speechSynthesis.speak(new SpeechSynthesisUtterance(m.text)); break;
-    case "clues": m.clues.forEach((c) => { addClue(c); log(`📓 New clue: ${c.title}`, "sys"); }); break;
-    case "hint": log(`Mrs. Hale: ${m.text}`, "sys"); break;
-    case "state":
-      $("state").textContent = `Questions left: ${m.questionsLeft} · Nerves: ${Object.entries(m.nerves).map(([k, v]) => `${nameOf(k)} ${v}/10`).join(", ")}`;
-      break;
-    case "verdict": log(`VERDICT: ${m.outcome} ${"★".repeat(m.stars)}${"☆".repeat(3 - m.stars)}\n${m.solution.explanation}`, "sys"); break;
-    case "error": log(`⚠ ${m.message}`, "err"); break;
-  }
+  (handlers[m.type] ?? (() => log(`(unhandled ${m.type})`, "sys")))(m);
 };
 </script>
 </body>

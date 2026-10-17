@@ -46,6 +46,22 @@ A voice-driven detective game for the AssemblyAI Hackathon #2 (October 15–23, 
 - A redial resets nerves to 5.
 - Pitch angle for Business Value: "an engine for voice role-play training".
 
+**Since the code review (2026-10-17).**
+- **Suspect model:** `qwen3.5-4b-32k-fast`. It's the only Gateway model this account can use, it really streams, and the first token arrives in ~390 ms. Defaults elsewhere in this plan that name `claude-haiku-5-5` are superseded.
+- **Hang-ups:** only at nerves 10; the model can't end a call. A cornered culprit (confession available) stays at nerves 9, so pushing brings a confession, not a hang-up. Every hang-up ends on the character's scripted `hangUpLine`.
+- **Truth tiers:** a culprit's `shaken` truth must never describe the crime; the details live only in `confession`.
+- **Turns:** a turn under 2 characters gets "Didn't catch that, detective." with no LLM call. History sent to the LLM is capped at 40 messages. When the budget runs out, Mrs. Hale prompts the player to accuse.
+- **Protocol:**
+  - `busy {utteranceId}` replaces the old busy call status.
+  - `words` carries TTS word timings for captions.
+  - `hello`/`welcome` resume a game for 10 minutes after a disconnect.
+- **Limits:**
+  - 20 open sessions, 30 per IP per hour (`Fly-Client-IP`);
+  - 40 calls per game, at least 3 s between dials;
+  - 5 minutes per call;
+  - 60 s of audio per push-to-talk press;
+  - sockets closed after 10 minutes idle.
+
 **Schedule.**
 
 | Day | Focus |

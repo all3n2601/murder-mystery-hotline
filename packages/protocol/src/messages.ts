@@ -7,8 +7,8 @@ export const MAX_TEXT = 500;
 export const MAX_RAW_BYTES = 16_384;
 export const MAX_EVIDENCE = 20;
 
-// Ids are interpolated into prompts and file paths, so keep them boring.
-const Id = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/i);
+// Ids are interpolated into prompts and file paths, so keep them boring. Shared with the engine.
+export const Id = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/i);
 const Text = z.string().trim().min(1).max(MAX_TEXT);
 const UtteranceId = z.number().int().nonnegative().max(0xffff_ffff);
 
@@ -44,8 +44,10 @@ export const Clue = z.object({
   id: Id,
   title: z.string(),
   text: z.string(),
-  source: Id, // character id, or "start" for starting evidence
+  source: Id, // character id, or STARTING_EVIDENCE for clues the player begins with
 });
+
+export const STARTING_EVIDENCE = "start";
 export type Clue = z.infer<typeof Clue>;
 
 export const PublicCaseState = z.object({
@@ -62,10 +64,18 @@ export type PublicCaseState = z.infer<typeof PublicCaseState>;
 export const VerdictOutcome = z.enum(["solved", "rightButWeak", "wrong"]);
 export type VerdictOutcome = z.infer<typeof VerdictOutcome>;
 
-export const CallStatus = z.enum(["connected", "busy", "ended"]);
-export const CallEndReason = z.enum(["player", "suspect", "error"]);
+export const CallStatus = z.enum(["connected", "ended"]);
+export const CallEndReason = z.enum(["player", "suspect", "timeout"]);
 
-const Word = z.object({ word: z.string(), start: z.number(), end: z.number() });
+/** One spoken word and its timing in ms, from TTS word boundaries. */
+export const Word = z.object({ word: z.string(), start: z.number(), end: z.number() });
+export type Word = z.infer<typeof Word>;
+
+/** One turn of a suspect's conversation history, as sent to the LLM. */
+export type ChatMessage = { role: "user" | "assistant"; content: string };
+
+/** Nerves run from calm (0) to hanging up (NERVES_MAX). */
+export const NERVES_MAX = 10;
 
 export const ServerMessage = z.discriminatedUnion("type", [
   z.object({ type: z.literal("welcome"), sessionId: Id, resumed: z.boolean() }),
@@ -77,11 +87,13 @@ export const ServerMessage = z.discriminatedUnion("type", [
   z.object({ type: z.literal("line_end"), utteranceId: UtteranceId, interrupted: z.boolean() }),
   z.object({ type: z.literal("words"), utteranceId: UtteranceId, words: z.array(Word) }),
   z.object({ type: z.literal("stop_audio"), utteranceId: UtteranceId }),
+  // Every TTS line is in use; this utterance is queued. The client plays the busy crackle.
+  z.object({ type: z.literal("busy"), utteranceId: UtteranceId }),
   z.object({ type: z.literal("fallback_speech"), utteranceId: UtteranceId, speaker: Id, text: z.string() }),
   z.object({
     type: z.literal("state"),
     questionsLeft: z.number().int().nonnegative(),
-    nerves: z.record(z.number().int().min(0).max(10)),
+    nerves: z.record(z.number().int().min(0).max(NERVES_MAX)),
     activeCall: Id.nullable(),
   }),
   z.object({ type: z.literal("clues"), clues: z.array(Clue) }),
