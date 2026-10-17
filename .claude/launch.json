@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hotline-server",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/server", "exec", "tsx", "--env-file=../../.env", "src/main.ts"],
+      "port": 8787
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "murder-mystery-hotline",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.5.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "dev:server": "pnpm --filter @mmh/server dev",
+    "dev:web": "pnpm --filter @mmh/web dev",
+    "probe:agent": "tsx --env-file=.env tools/probe-voice-agent.ts",
+    "probe:llm": "tsx --env-file=.env tools/probe-own-llm.ts",
+    "smoke": "pnpm --filter @mmh/server exec tsx src/smoke.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0",
+    "ws": "^8.18.0"
+  }
+}

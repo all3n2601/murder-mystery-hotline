@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hotline Test Bench</title>
+<!-- DUMMY FRONTEND: a plain test bench for the backend. The real game UI lives in apps/web. -->
+<style>
+  :root { --bg: #14110f; --panel: #1f1a16; --ink: #efe6d8; --dim: #a39684; --brass: #d4a24c; --red: #c9483b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 ui-monospace, Menlo, monospace; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+  section { background: var(--panel); border: 1px solid #3a3029; border-radius: 6px; padding: 12px; }
+  h1 { grid-column: 1 / -1; margin: 0; font-size: 18px; color: var(--brass); }
+  h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+  button { background: #2d251f; color: var(--ink); border: 1px solid #5a4a3c; border-radius: 4px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--brass); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  button.live { background: var(--brass); color: #14110f; }
+  #talk { width: 100%; padding: 14px; font-size: 16px; }
+  #talk.on { background: var(--red); border-color: var(--red); }
+  input[type=text] { width: 100%; background: #0f0d0b; color: var(--ink); border: 1px solid #5a4a3c; border-radius: 4px; padding: 8px; font: inherit; }
+  #log { height: 340px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; }
+  #log .you { color: var(--brass); } #log .sys { color: var(--dim); } #log .err { color: var(--red); }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  #notebook li { margin-bottom: 6px; } #notebook label { cursor: pointer; }
+  .wide { grid-column: 1 / -1; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>☎ Murder Mystery Hotline: backend test bench</h1>
+
+  <section>
+    <h2>Case</h2>
+    <div class="row"><button id="start">Pick up the receiver &amp; open "The Night Operator"</button></div>
+    <div id="briefing" class="sys"></div>
+    <h2 style="margin-top:12px">Switchboard</h2>
+    <div id="suspects" class="row"></div>
+    <div class="row"><button id="hangup">Hang up</button> <span id="callstatus" class="sys">No call</span></div>
+    <div id="state" class="sys"></div>
+  </section>
+
+  <section>
+    <h2>Talk</h2>
+    <button id="talk" disabled>Hold to talk (or hold Space)</button>
+    <div id="partial" class="sys" style="min-height:1.4em;margin:6px 0"></div>
+    <form id="askform" class="row"><input id="ask" type="text" maxlength="500" placeholder="…or type a question and press Enter" /></form>
+    <h2>Transcript</h2>
+    <div id="log" aria-live="polite"></div>
+  </section>
+
+  <section class="wide">
+    <h2>Notebook</h2>
+    <ul id="notebook"></ul>
+    <div class="row">
+      <label for="culprit">Accuse:</label> <select id="culprit"></select>
+      <button id="accuse">Name the killer with checked evidence</button>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const log = (text, cls = "") => {
+  const div = document.createElement("div");
+  div.className = cls;
+  div.textContent = text;
+  $("log").append(div);
+  $("log").scrollTop = $("log").scrollHeight;
+};
+
+// ---- socket ---------------------------------------------------------------
+const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/game`);
+ws.binaryType = "arraybuffer";
+const send = (m) => ws.readyState === 1 && ws.send(JSON.stringify(m));
+ws.onclose = () => log("Connection closed.", "err");
+
+// ---- audio out: PCM16 24 kHz frames tagged with an utterance id --------------
+let ctx = null;
+const playing = new Map(); // utteranceId -> { sources, nextTime, startedAt }
+let current = null; // utteranceId being heard now
+
+function playFrame(buf) {
+  const view = new DataView(buf);
+  const id = view.getUint32(0, true);
+  const samples = (buf.byteLength - 4) >> 1;
+  if (!ctx || samples === 0 || stopped.has(id)) return;
+  const audio = ctx.createBuffer(1, samples, 24000);
+  const ch = audio.getChannelData(0);
+  for (let i = 0; i < samples; i++) ch[i] = view.getInt16(4 + i * 2, true) / 32768;
+  let p = playing.get(id);
+  if (!p) {
+    p = { sources: [], nextTime: ctx.currentTime + 0.05, startedAt: ctx.currentTime + 0.05 };
+    playing.set(id, p);
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = audio;
+  src.connect(phoneLine);
+  const at = Math.max(p.nextTime, ctx.currentTime);
+  src.start(at);
+  p.nextTime = at + audio.duration;
+  p.sources.push(src);
+  current = id;
+}
+
+const stopped = new Set();
+function stopUtterance(id) {
+  stopped.add(id);
+  for (const s of playing.get(id)?.sources ?? []) try { s.stop(); } catch {}
+  playing.delete(id);
+  if (current === id) current = null;
+}
+function isAudible(id) {
+  const p = playing.get(id);
+  return !!p && ctx && ctx.currentTime < p.nextTime;
+}
+
+// ---- audio in: mic -> 16 kHz PCM16 while talk is held ------------------------
+let talking = false;
+let phoneLine = null;
+async function unlockAudio() {
+  if (ctx) return;
+  ctx = new AudioContext();
+  // A 300–3400 Hz band-pass for the phone-line sound.
+  const hp = new BiquadFilterNode(ctx, { type: "highpass", frequency: 300 });
+  const lp = new BiquadFilterNode(ctx, { type: "lowpass", frequency: 3400 });
+  hp.connect(lp).connect(ctx.destination);
+  phoneLine = hp;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    const worklet = `
+      class Mic extends AudioWorkletProcessor {
+        constructor() { super(); this.buf = []; this.ratio = sampleRate / 16000; this.pos = 0; }
+        process([input]) {
+          const ch = input[0]; if (!ch) return true;
+          for (; this.pos < ch.length; this.pos += this.ratio) this.buf.push(ch[Math.floor(this.pos)]);
+          this.pos -= ch.length;
+          if (this.buf.length >= 1600) { // 100 ms
+            const out = new Int16Array(this.buf.length);
+            for (let i = 0; i < out.length; i++) out[i] = Math.max(-1, Math.min(1, this.buf[i])) * 0x7fff;
+            this.port.postMessage(out.buffer, [out.buffer]); this.buf = [];
+          }
+          return true;
+        }
+      }
+      registerProcessor("mic", Mic);`;
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([worklet], { type: "text/javascript" })));
+    const node = new AudioWorkletNode(ctx, "mic");
+    node.port.onmessage = (e) => talking && ws.readyState === 1 && ws.send(e.data);
+    ctx.createMediaStreamSource(stream).connect(node);
+    $("talk").disabled = false;
+  } catch (err) {
+    log(`Microphone unavailable (${err.message}). Type your questions instead.`, "err");
+  }
+}
+
+function talkStart() {
+  if (talking || $("talk").disabled) return;
+  talking = true;
+  $("talk").classList.add("on");
+  const msg = { type: "ptt_start" };
+  if (current !== null && isAudible(current)) {
+    const p = playing.get(current);
+    msg.interrupted = { utteranceId: current, playedMs: Math.max(0, (ctx.currentTime - p.startedAt) * 1000) };
+    stopUtterance(current);
+  }
+  send(msg);
+}
+function talkEnd() {
+  if (!talking) return;
+  talking = false;
+  $("talk").classList.remove("on");
+  send({ type: "ptt_end" });
+}
+
+$("talk").addEventListener("pointerdown", talkStart);
+$("talk").addEventListener("pointerup", talkEnd);
+$("talk").addEventListener("pointerleave", talkEnd);
+addEventListener("keydown", (e) => { if (e.code === "Space" && document.activeElement?.tagName !== "INPUT" && !e.repeat) { e.preventDefault(); talkStart(); } });
+addEventListener("keyup", (e) => { if (e.code === "Space" && document.activeElement?.tagName !== "INPUT") { e.preventDefault(); talkEnd(); } });
+
+// ---- controls -------------------------------------------------------------
+let suspects = [];
+$("start").onclick = async () => { await unlockAudio(); send({ type: "start", caseId: "night-operator" }); };
+$("hangup").onclick = () => send({ type: "hangup" });
+$("askform").onsubmit = (e) => {
+  e.preventDefault();
+  const text = $("ask").value.trim();
+  if (!text) return;
+  if (current !== null) stopUtterance(current);
+  send({ type: "ask", text });
+  $("ask").value = "";
+};
+$("accuse").onclick = () => {
+  const evidence = [...document.querySelectorAll("#notebook input:checked")].map((i) => i.value);
+  send({ type: "accuse", suspectId: $("culprit").value, evidence });
+};
+
+function addClue(c) {
+  if (document.querySelector(`#notebook input[value="${c.id}"]`)) return;
+  const li = document.createElement("li");
+  li.innerHTML = `<label><input type="checkbox" value="${c.id}"> <b></b> <span class="sys"></span></label>`;
+  li.querySelector("b").textContent = c.title;
+  li.querySelector("span").textContent = `(${c.source}) ${c.text}`;
+  $("notebook").append(li);
+}
+
+const nameOf = (id) => suspects.find((s) => s.id === id)?.name ?? (id === "hale" ? "Mrs. Hale" : id);
+const lines = new Map(); // utteranceId -> div
+
+ws.onmessage = (e) => {
+  if (e.data instanceof ArrayBuffer) return playFrame(e.data);
+  const m = JSON.parse(e.data);
+  switch (m.type) {
+    case "case":
+      suspects = m.publicState.suspects;
+      $("briefing").textContent = m.publicState.briefing;
+      $("suspects").innerHTML = "";
+      $("culprit").innerHTML = "";
+      for (const s of suspects) {
+        const b = document.createElement("button");
+        b.textContent = `${s.line}: ${s.name}`;
+        b.title = s.role;
+        b.dataset.id = s.id;
+        b.onclick = () => send({ type: "dial", suspectId: s.id });
+        $("suspects").append(b);
+        $("culprit").append(new Option(s.name, s.id));
+      }
+      m.publicState.startingEvidence.forEach(addClue);
+      log("Case opened. Plug into a line.", "sys");
+      break;
+    case "call":
+      $("callstatus").textContent = `${nameOf(m.suspectId)}: ${m.status}${m.reason ? ` (${m.reason})` : ""}`;
+      document.querySelectorAll("#suspects button").forEach((b) => b.classList.toggle("live", m.status !== "ended" && b.dataset.id === m.suspectId));
+      if (m.status === "ended") log(`— ${nameOf(m.suspectId)} hung up (${m.reason}) —`, "sys");
+      if (m.status === "busy") log("All lines are busy… hold, please.", "sys");
+      break;
+    case "partial": $("partial").textContent = `… ${m.text}`; break;
+    case "heard": $("partial").textContent = ""; log(`You: ${m.text}`, "you"); break;
+    case "line": {
+      let div = lines.get(m.utteranceId);
+      if (!div) { div = document.createElement("div"); $("log").append(div); lines.set(m.utteranceId, div); }
+      div.textContent = `${nameOf(m.speaker)}: ${m.text}`;
+      $("log").scrollTop = $("log").scrollHeight;
+      break;
+    }
+    case "line_end": if (m.interrupted) lines.get(m.utteranceId)?.append(" —(cut off)"); break;
+    case "stop_audio": stopUtterance(m.utteranceId); break;
+    case "fallback_speech": speechSynthesis.speak(new SpeechSynthesisUtterance(m.text)); break;
+    case "clues": m.clues.forEach((c) => { addClue(c); log(`📓 New clue: ${c.title}`, "sys"); }); break;
+    case "hint": log(`Mrs. Hale: ${m.text}`, "sys"); break;
+    case "state":
+      $("state").textContent = `Questions left: ${m.questionsLeft} · Nerves: ${Object.entries(m.nerves).map(([k, v]) => `${nameOf(k)} ${v}/10`).join(", ")}`;
+      break;
+    case "verdict": log(`VERDICT: ${m.outcome} ${"★".repeat(m.stars)}${"☆".repeat(3 - m.stars)}\n${m.solution.explanation}`, "sys"); break;
+    case "error": log(`⚠ ${m.message}`, "err"); break;
+  }
+};
+</script>
+</body>
+</html>

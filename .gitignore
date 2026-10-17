@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.agents.json
+probe-out/
+.DS_Store

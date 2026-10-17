@@ -1,0 +1,11 @@
+{
+  "name": "@mmh/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./test-fixture": "./src/test-fixture.ts"
+  },
+  "dependencies": { "@mmh/protocol": "workspace:*", "zod": "^3.24.1" }
+}

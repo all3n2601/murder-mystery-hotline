@@ -1,0 +1,20 @@
+{
+  "name": "@mmh/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/main.ts"
+  },
+  "dependencies": {
+    "@fastify/websocket": "^11.0.1",
+    "@mmh/engine": "workspace:*",
+    "@mmh/protocol": "workspace:*",
+    "fastify": "^5.2.0",
+    "ws": "^8.22.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.2"
+  }
+}

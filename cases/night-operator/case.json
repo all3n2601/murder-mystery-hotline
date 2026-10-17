@@ -1,0 +1,165 @@
+{
+  "id": "night-operator",
+  "title": "The Night Operator",
+  "era": "1947",
+  "difficulty": "medium",
+  "questionBudget": 25,
+  "briefing": "MAdison Exchange, 2:10 a.m. Night operator Dorothy \"Dot\" Kowalski was found slumped at her board, strangled with one of her own patch cords. Her call log sits open beside the jacks. Every line she connected tonight belongs to someone with a reason to want her quiet. You're at her board now. Plug in, and start asking.",
+  "narrator": { "id": "hale", "name": "Mrs. Hale", "voice": "anna" },
+  "startingEvidence": [
+    {
+      "id": "call_log",
+      "title": "Dot's call log",
+      "text": "1:15 Call box 12 (Riley) to exchange. 1:25 last call from MA-4410 (Hotel Marlowe desk). 1:30 to 1:50 MA-2207 (Ashford) connected long-distance. 1:32 Call box 12 rings through from across town. 1:55 MA-4410 resumes calls. No entries after 1:38 are in Dot's handwriting."
+    },
+    {
+      "id": "the_cord",
+      "title": "The patch cord",
+      "text": "A brass-tipped patch cord from position 3. The police have not told anyone how she died."
+    }
+  ],
+  "hints": [
+    { "id": "h_start", "afterClues": [], "text": "Dot kept that log like a diary, love. Somebody's line goes quiet when it shouldn't. Ask them where they were." },
+    { "id": "h_leo", "afterClues": ["doyle_alibi"], "text": "That reporter, Brandt, hung about outside most nights. Dot fed him stories. Ask him what she promised tonight." },
+    { "id": "h_coat", "afterClues": ["leo_tip"], "text": "If Leo was standing outside, he'd have seen who came and went. Ask him who left the building." },
+    { "id": "h_press", "afterClues": ["leo_coat"], "text": "Mr. Doyle doesn't like being pushed. Push him about how she died, and see what he knows that he shouldn't." }
+  ],
+  "characters": [
+    {
+      "id": "doyle",
+      "name": "Frank Doyle",
+      "role": "night manager of the Hotel Marlowe",
+      "line": "MA-4410",
+      "voice": "george",
+      "persona": "Smooth, clipped, used to giving orders to bellhops. Calls the detective 'friend'. Gets icy and then loud when cornered.",
+      "motive": "Dot listened in on his calls arranging payoffs to a city councilman, and she was squeezing him for money.",
+      "startNerves": 2,
+      "truth": {
+        "guarded": "You run the night desk at the Hotel Marlowe across the street. You knew Dot only as the voice that put your calls through. You claim you were at the hotel desk all night.",
+        "shaken": "Dot had been listening in on your calls about payments to Councilman Hargrove, and she wanted money to keep quiet. At about 1:30 you put on the doorman's coat, crossed the street, and went up to the exchange. You strangled her with a patch cord and walked back. You will die before you admit this unless you are truly cornered."
+      },
+      "lies": [
+        "You were at the front desk making calls the whole night, from before one until after two.",
+        "You barely knew the operator's name."
+      ],
+      "clues": [
+        {
+          "id": "doyle_alibi",
+          "title": "Doyle's alibi",
+          "text": "Doyle insists he was at the Marlowe desk placing calls without a break from 1:25 to 2:00. Dot's log shows the Marlowe line dead from 1:25 to 1:55.",
+          "topics": ["where he was tonight", "his alibi", "what he was doing between one and two"],
+          "fallbackPhrases": ["at the desk", "making calls"]
+        },
+        {
+          "id": "doyle_slip",
+          "title": "Doyle's slip",
+          "text": "Rattled, Doyle says she was 'strangled with her own cord'. The police never released how she died.",
+          "topics": ["how the operator died", "what he heard about the murder"],
+          "minPressure": 6,
+          "requires": ["leo_tip"],
+          "fallbackPhrases": ["her own cord", "with a cord", "patch cord"]
+        }
+      ],
+      "confession": {
+        "minNerves": 9,
+        "minKeyClues": 3,
+        "text": "All right! She was bleeding me dry. I put on Eddie's coat, went over there, and I just wanted her to stop talking. I just wanted her to stop."
+      }
+    },
+    {
+      "id": "evelyn",
+      "name": "Evelyn Ashford",
+      "role": "society widow",
+      "line": "MA-2207",
+      "voice": "vera",
+      "persona": "Cut-glass manners, bored by policemen, a little tipsy at this hour. Calls the detective 'darling' when she wants to be rid of him.",
+      "motive": "Dot overheard her nightly calls to a married lover and was blackmailing her.",
+      "startNerves": 3,
+      "truth": {
+        "guarded": "You make a long-distance call every night around half past one. Tonight it ran from about 1:30 to 1:50. You never left your apartment.",
+        "shaken": "The call was to Charles Whitcombe in Boston, a married man. Dot listened in and had been charging you twenty dollars a week to keep quiet. You hated her, but you were on the line the whole time, and the exchange will have the record."
+      },
+      "lies": ["You were calling your sister in Boston."],
+      "clues": [
+        {
+          "id": "evelyn_blackmail",
+          "title": "Evelyn was being blackmailed",
+          "text": "Dot was blackmailing Evelyn over a married lover, twenty dollars a week. A motive, but she was on a long-distance call from 1:30 to 1:50.",
+          "topics": ["who she was calling", "whether Dot bothered her", "money"],
+          "minPressure": 4,
+          "fallbackPhrases": ["twenty dollars", "Whitcombe"]
+        }
+      ]
+    },
+    {
+      "id": "leo",
+      "name": "Leo Brandt",
+      "role": "crime reporter at the Herald",
+      "line": "MA-9031",
+      "voice": "michael",
+      "persona": "Fast-talking, cynical, always angling for a quote. Grieving under the wisecracks, because he liked Dot. Trades information for information.",
+      "motive": "Dot was his paid tipster and had threatened to take her big story to a rival paper.",
+      "startNerves": 2,
+      "truth": {
+        "guarded": "Dot fed you tips from the lines. Tonight she promised you 'a name at City Hall' and told you to wait outside the exchange at 1:30. You waited in your car across the street, but she never came down.",
+        "shaken": "At about 1:45 you saw a man in a Hotel Marlowe doorman's coat come out of the exchange's side door and walk quickly back across to the hotel. You didn't see his face. You're ashamed you didn't go up."
+      },
+      "lies": [],
+      "clues": [
+        {
+          "id": "leo_tip",
+          "title": "Dot's big tip",
+          "text": "Dot told Leo her story tonight was about payoffs run out of the Hotel Marlowe to someone at City Hall.",
+          "topics": ["what Dot promised him", "the story", "City Hall"],
+          "minPressure": 2,
+          "fallbackPhrases": ["Marlowe", "City Hall"]
+        },
+        {
+          "id": "leo_coat",
+          "title": "The man in the doorman's coat",
+          "text": "Around 1:45 Leo saw a man in a Hotel Marlowe doorman's coat leave the exchange by the side door and cross back to the hotel.",
+          "topics": ["who he saw leave the building", "what he saw while waiting"],
+          "minPressure": 3,
+          "requires": ["leo_tip"],
+          "fallbackPhrases": ["doorman's coat", "doorman coat", "side door"]
+        }
+      ]
+    },
+    {
+      "id": "riley",
+      "name": "Officer Tom Riley",
+      "role": "beat cop, Dot's ex-fiancé",
+      "line": "Call box 12",
+      "voice": "jean",
+      "persona": "Big, gruff, defensive, grieving and angry about it. Resents a detective questioning one of his own.",
+      "motive": "Dot broke off their engagement last month, and he took it badly.",
+      "startNerves": 4,
+      "truth": {
+        "guarded": "You stopped by the exchange at 1:15 to see Dot, and signed the night book. You argued and you left by 1:20 to walk your beat.",
+        "shaken": "You reported in from call box 12 at 1:32, which is twenty minutes' walk across town. You couldn't have been back at the exchange by 1:40. You still loved her."
+      },
+      "lies": ["You only stopped by to check the building was secure."],
+      "clues": [
+        {
+          "id": "riley_callbox",
+          "title": "Riley's call box",
+          "text": "Riley reported in from call box 12, across town, at 1:32. He couldn't have been at the exchange at 1:40.",
+          "topics": ["where he was after he left", "his beat", "the call box"],
+          "minPressure": 3,
+          "fallbackPhrases": ["call box", "1:32", "one thirty-two"]
+        }
+      ]
+    }
+  ],
+  "solution": {
+    "culprit": "doyle",
+    "keyClues": ["leo_tip", "doyle_alibi", "leo_coat", "doyle_slip"],
+    "minKeyClues": 3,
+    "explanation": "Frank Doyle was being blackmailed by Dot over his payoffs to City Hall. His desk line went dead from 1:25 to 1:55 while he claimed to be making calls. Leo saw a man in a Marlowe doorman's coat leave at 1:45, and Doyle knew she was strangled with her own cord, a detail the police never released.",
+    "endings": {
+      "solved": "They took Frank Doyle out of the Marlowe in cuffs at dawn, still wearing his good shoes. I plugged in position three one last time, for Dot. Nobody answered. Nobody needed to. Case closed, detective.",
+      "rightButWeak": "You named the right man, but the D.A. laughed you out of his office. Frank Doyle went back to his desk by breakfast. Next time, love, bring the log.",
+      "wrong": "They booked the wrong one, detective. And at three in the morning, the Marlowe's line lit up on my board. I didn't answer it. I could hear him laughing anyway."
+    }
+  }
+}
