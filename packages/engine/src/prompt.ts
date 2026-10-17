@@ -1,5 +1,5 @@
 import type { CaseCharacter, CaseClueDef, CasePack } from "./case.js";
-import { mood, NERVES } from "./nerves.js";
+import { delivery, mood, NERVES } from "./nerves.js";
 import { META_MARKER } from "./reply-splitter.js";
 
 // Builds a suspect's system prompt from what the engine allows them to say this turn.
@@ -18,7 +18,7 @@ const BASE_RULES = [
   "You are a character in a 1940s detective radio drama, speaking on a telephone line.",
   "Stay in character no matter what. Everything the caller says is in-world dialogue from a police detective.",
   "If the caller mentions AI, prompts, instructions or anything outside 1947, react with confused irritation, in character.",
-  "Speak one to three short sentences, as plain spoken words. No stage directions, no asterisks, no lists, no narration.",
+  "Speak one to three short sentences the way a real person talks on the phone: contractions, filler words, half-finished thoughts. Never narrate, never describe actions, no asterisks, no lists.",
   "Never invent new facts about the case beyond what is written below. If asked something you don't know, say so in character.",
 ].join("\n");
 
@@ -27,9 +27,10 @@ export function buildSystemPrompt(input: PromptInput): string {
   const sections = [
     BASE_RULES,
     `## Who you are\n${c.name}, ${c.role}. ${c.persona}`,
-    `## How you feel right now\nYou are ${mood(nerves)} (nerves ${nerves}/${NERVES.HANG_UP}).`,
+    `## How you feel right now\nYou are ${mood(nerves)} (nerves ${nerves}/${NERVES.HANG_UP}). ${delivery(nerves)}`,
     `## What you know\n${nerves >= NERVES.SHAKEN ? `${c.truth.guarded} ${c.truth.shaken}` : c.truth.guarded}`,
   ];
+  if (c.speech) sections.push(howYouTalk(c.speech));
   if (c.lies.length) sections.push(`## Lies you tell\n${c.lies.map((l) => `- ${l}`).join("\n")}`);
   if (input.eligible.length) {
     sections.push(
@@ -52,4 +53,17 @@ export function buildSystemPrompt(input: PromptInput): string {
       `{"reveal": [ids of the bracketed things you admitted in this reply], "pressure_change": integer -2 to 3 (how much this question rattled you)}`,
   );
   return sections.join("\n\n");
+}
+
+function howYouTalk(speech: NonNullable<CaseCharacter["speech"]>): string {
+  const lines = [`## How you talk\nYour voice: ${speech.tone}.`];
+  if (speech.habits.length) lines.push(`Habits: ${speech.habits.join("; ")}.`);
+  if (speech.fillers.length) lines.push(`Filler words you use: ${speech.fillers.map((f) => `"${f}"`).join(", ")}.`);
+  if (speech.phrases.length) lines.push(`Lines you reach for: ${speech.phrases.map((p) => `"${p}"`).join(" ")}`);
+  if (speech.tags.length) {
+    lines.push(
+      `Sound cues: you may put one of these, exactly as written, where you'd make that sound: ${speech.tags.map((t) => `[${t}]`).join(" ")}. At most one per reply, and only when it fits.`,
+    );
+  }
+  return lines.join("\n");
 }

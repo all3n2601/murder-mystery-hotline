@@ -106,7 +106,29 @@
         "minKeyClues": 3,
         "text": "All right! She was bleeding me dry. I put on Eddie's coat, went over there, and I just wanted her to stop talking. I just wanted her to stop."
       },
-      "hangUpLine": "We're finished here, friend. Call my lawyer."
+      "hangUpLine": "We're finished here, friend. Call my lawyer.",
+      "speech": {
+        "tone": "smooth hotel-manager charm, clipped and confident; goes icy, then loud, when cornered",
+        "habits": [
+          "calls the detective 'friend'",
+          "answers a question with a question",
+          "leans on the Marlowe's good name"
+        ],
+        "fillers": [
+          "well",
+          "look",
+          "now"
+        ],
+        "phrases": [
+          "I run a respectable house, friend.",
+          "You're barking up the wrong tree."
+        ],
+        "tags": [
+          "chuckles",
+          "scoffs",
+          "clears throat"
+        ]
+      }
     },
     {
       "id": "evelyn",
@@ -141,7 +163,28 @@
           ]
         }
       ],
-      "hangUpLine": "I've had quite enough of you, darling. Goodnight."
+      "hangUpLine": "I've had quite enough of you, darling. Goodnight.",
+      "speech": {
+        "tone": "affectionate and teasing, cut-glass manners, a little tipsy at this hour, bored by policemen",
+        "habits": [
+          "calls the detective 'darling'",
+          "drifts off into gossip",
+          "laughs off anything unpleasant"
+        ],
+        "fillers": [
+          "oh",
+          "mm",
+          "well, darling"
+        ],
+        "phrases": [
+          "Must we, darling?",
+          "How terribly dull."
+        ],
+        "tags": [
+          "laughs",
+          "sighs"
+        ]
+      }
     },
     {
       "id": "leo",
@@ -192,7 +235,29 @@
           ]
         }
       ],
-      "hangUpLine": "That's all you get for free, pal. Read it in the morning edition."
+      "hangUpLine": "That's all you get for free, pal. Read it in the morning edition.",
+      "speech": {
+        "tone": "fast-talking, cynical newspaperman; wisecracks over real grief for Dot",
+        "habits": [
+          "calls the detective 'pal' or 'chief'",
+          "talks in headlines",
+          "trades a fact for a fact"
+        ],
+        "fillers": [
+          "look",
+          "sure, sure",
+          "see"
+        ],
+        "phrases": [
+          "That's off the record.",
+          "What's in it for me, chief?"
+        ],
+        "tags": [
+          "scoffs",
+          "laughs",
+          "sighs"
+        ]
+      }
     },
     {
       "id": "riley",
@@ -228,7 +293,28 @@
           ]
         }
       ],
-      "hangUpLine": "Talk to my sergeant. I'm done with you."
+      "hangUpLine": "Talk to my sergeant. I'm done with you.",
+      "speech": {
+        "tone": "big, gruff and grudging; grieving and won't admit it; hates being grilled by another cop",
+        "habits": [
+          "short, clipped sentences",
+          "says 'pal' when he's annoyed",
+          "goes quiet, then snaps"
+        ],
+        "fillers": [
+          "look",
+          "yeah"
+        ],
+        "phrases": [
+          "I said what I said.",
+          "Drop it, pal."
+        ],
+        "tags": [
+          "sighs",
+          "clears throat",
+          "coughs"
+        ]
+      }
     }
   ],
   "solution": {

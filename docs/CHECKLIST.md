@@ -37,11 +37,13 @@ Source of truth for decisions: [plan.md](plan.md). Ticked items are done and on 
 - [x] TTS socket reuse: one line per voice per call, `Cancel` without stale audio, transparent reconnect.
 
 **To do**
-- [ ] **P1** Expressive characters:
-  - [ ] Reply splitter keeps the acted tags (`[sighs] [laughs] [chuckles] [gasps] [clears throat] [coughs] [scoffs]`) and strips all other brackets.
-  - [ ] Case schema: a per-character `speech` block (tone, verbal habits, filler words, signature phrases, preferred tags).
-  - [ ] Prompt: a "how you talk" section; delivery that changes with nerves (smooth when calm, false starts and trailing off when rattled); the allowed-tags rule replaces "no stage directions".
+- [x] **P1** Expressive characters:
+  - [x] Reply splitter keeps the acted tags (`[sighs] [laughs] [chuckles] [gasps] [clears throat] [coughs] [scoffs]`), strips all other brackets, and keeps at most one tag per reply.
+  - [x] Case schema: a per-character `speech` block (tone, verbal habits, filler words, signature phrases, preferred tags), with tags checked by the validator.
+  - [x] Prompt: a "how you talk" section, and delivery that changes with nerves (smooth, then slipping, then false starts); a signature phrase isn't offered again once it's been used.
+  - [x] Speech styles written for Doyle, Evelyn, Leo and Riley.
   - [ ] Finish the tag probe: `[sniffs] [whispers] [groans] [exhales] [nervous laugh] [pause]`.
+- [ ] **P1** The small suspect model (`qwen3.5-4b-32k-fast`, the only Gateway model this account can use) invents details ("a voltage spike at the break-room junction") and reuses lines from its own history. Get access to a bigger model through the organizers, or try a lower temperature and a stricter "deflect, don't invent" rule.
 - [ ] **P1** Mrs. Hale reads the briefing aloud when a case opens.
 - [ ] **P1** Model reliability check:
   - META stays valid over 20 or more turns;
@@ -80,7 +82,8 @@ Source of truth for decisions: [plan.md](plan.md). Ticked items are done and on 
 ## 3. Content
 
 - [x] Case 1, "The Night Operator": four suspects, key clues, hints, three endings.
-- [ ] **P1** Speech styles for Doyle, Evelyn, Leo, Riley and Mrs. Hale. Re-cast voices once you've heard them in context.
+- [x] **P1** Speech styles for Doyle, Evelyn, Leo and Riley.
+- [ ] **P1** Re-cast voices once you've heard them in context, and add a tag or two to Mrs. Hale's scripted lines.
 - [ ] **P1** Balance from playtests: clue gates, nerve thresholds, hint order, question budget.
 - [ ] **P2** Mini Case 2, "Dead Air" (1986): two suspects, no cinematic. Only if Day 5 is on track.
 

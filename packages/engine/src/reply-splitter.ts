@@ -1,3 +1,5 @@
+import { isActedTag } from "./tags.js";
+
 // Splits a streamed suspect reply into speech for TTS and the trailing ###META block for the engine.
 
 export type ReplySplitter = {
@@ -8,17 +10,27 @@ export type ReplySplitter = {
 };
 
 export const META_MARKER = "###META";
+const MAX_TAGS_PER_REPLY = 1;
 
 // A sentence ends at . ! ? or … (optionally followed by a closing quote or bracket),
 // once whitespace and the start of the next sentence have arrived.
 const SENTENCE_END = /[.!?…]["'”’)\]]?\s+(?=\S)/g;
 
-/** Removes stage directions ((sighs), [pause], *nervously*) and markdown emphasis so TTS reads only dialogue. */
-function cleanForSpeech(text: string): string {
+/**
+ * Keeps the tags TTS acts out ([sighs], [laughs]...) and removes every other stage direction
+ * ((grins), [walks away], *nervously*) and markdown emphasis, so TTS reads only dialogue.
+ */
+function cleanForSpeech(text: string, budget: { tags: number }): string {
   return text
     .replace(/\*\*(.+?)\*\*/g, "$1") // **bold** -> words kept
     .replace(/\*[^*]*\*/g, "") // *action* -> dropped
-    .replace(/\([^)]*\)|\[[^\]]*\]/g, "") // (sighs), [pause] -> dropped
+    .replace(/\([^)]*\)/g, "") // (grins) -> dropped
+    .replace(/\[([^\]]*)\]/g, (_, tag: string) => {
+      const name = tag.trim().toLowerCase();
+      if (!isActedTag(name) || budget.tags <= 0) return "";
+      budget.tags--;
+      return `[${name}]`;
+    })
     .replace(/[*_#`]/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -27,13 +39,14 @@ function cleanForSpeech(text: string): string {
 export function createReplySplitter(): ReplySplitter {
   let speech = ""; // speech not yet released
   let meta: string | null = null;
+  const budget = { tags: MAX_TAGS_PER_REPLY }; // one sound effect per reply lands; more piles up
 
   function takeSentences(): string[] {
     const out: string[] = [];
     let start = 0;
     for (const m of speech.matchAll(SENTENCE_END)) {
       const end = m.index + m[0].length;
-      const sentence = cleanForSpeech(speech.slice(start, end));
+      const sentence = cleanForSpeech(speech.slice(start, end), budget);
       if (sentence) out.push(sentence);
       start = end;
     }
@@ -56,7 +69,7 @@ export function createReplySplitter(): ReplySplitter {
       return takeSentences();
     },
     end() {
-      const rest = cleanForSpeech(speech);
+      const rest = cleanForSpeech(speech, budget);
       return { sentences: rest ? [rest] : [], meta: meta === null ? null : meta.trim() };
     },
   };

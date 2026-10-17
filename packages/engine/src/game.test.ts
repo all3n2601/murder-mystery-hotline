@@ -105,6 +105,47 @@ describe("game", () => {
     expect(messages.at(-2)).toEqual({ role: "assistant", content: "I baked the cake and—" });
   });
 
+  it("tells a suspect how they talk, including only their own acted tags", () => {
+    const game = newGame((c) => {
+      c.characters[1]!.speech = { tone: "smooth, condescending", habits: ["calls everyone 'old sport'"], fillers: ["well"], phrases: ["Quite."], tags: ["chuckles"] };
+    });
+    game.dial("butler");
+    const { system } = game.prepareTurn("Hello?");
+    expect(system).toContain("smooth, condescending");
+    expect(system).toContain("calls everyone 'old sport'");
+    expect(system).toContain("[chuckles]");
+    expect(system).not.toContain("[gasps]"); // tags this character doesn't use aren't offered
+    expect(system).not.toMatch(/no stage directions/i); // acted tags are allowed now
+  });
+
+  it("stops offering a signature phrase once the suspect has said it", () => {
+    const game = newGame((c) => {
+      c.characters[1]!.speech = { tone: "smooth", phrases: ["Quite.", "I polish, therefore I am."] };
+    });
+    game.dial("butler");
+    game.prepareTurn("q");
+    game.recordReply({ spoken: "Quite. I was in the pantry.", meta: meta({}) });
+    const { system } = game.prepareTurn("q2");
+    expect(system).not.toContain('"Quite."');
+    expect(system).toContain('"I polish, therefore I am."');
+  });
+
+  it("changes a suspect's delivery as their nerves rise", () => {
+    const game = newGame((c) => {
+      c.characters[1]!.speech = { tone: "smooth" };
+      c.questionBudget = 20;
+    });
+    game.dial("butler"); // nerves 2
+    const calm = game.prepareTurn("q").system;
+    game.recordReply({ spoken: "No.", meta: meta({ pressure_change: 3 }) });
+    game.prepareTurn("q");
+    game.recordReply({ spoken: "No.", meta: meta({ pressure_change: 3 }) }); // nerves 8
+    const rattled = game.prepareTurn("q").system;
+    expect(calm).toMatch(/in control/i);
+    expect(rattled).toMatch(/false starts/i);
+    expect(calm).not.toMatch(/false starts/i);
+  });
+
   it("adds an eligible revealed clue to the notebook and rejects a locked one", () => {
     const game = newGame();
     game.dial("butler");

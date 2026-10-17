@@ -37,6 +37,17 @@ export function createGame(pack: CasePack) {
     currentNerves >= suspect.confession.minNerves &&
     pack.solution.keyClues.filter((id) => found.has(id)).length >= suspect.confession.minKeyClues;
 
+  /** A signature line is charming once; offered again it becomes a tic. */
+  function withFreshPhrases(suspect: CaseCharacter): CaseCharacter {
+    if (!suspect.speech?.phrases.length) return suspect;
+    const said = history
+      .get(suspect.id)!
+      .filter((m) => m.role === "assistant")
+      .map((m) => m.content.toLowerCase());
+    const fresh = suspect.speech.phrases.filter((p) => !said.some((line) => line.includes(p.toLowerCase().replace(/[.!?]+$/, ""))));
+    return { ...suspect, speech: { ...suspect.speech, phrases: fresh } };
+  }
+
   function requireActive(): CaseCharacter {
     if (!active) throw new Error("no active call");
     return active;
@@ -75,7 +86,7 @@ export function createGame(pack: CasePack) {
       const unrevealed = suspect.clues.filter((clue) => !found.has(clue.id));
       const system = buildSystemPrompt({
         pack,
-        character: suspect,
+        character: withFreshPhrases(suspect),
         nerves: current,
         eligible: unrevealed.filter((clue) => isEligible(clue, current)),
         locked: unrevealed.filter((clue) => !isEligible(clue, current)),

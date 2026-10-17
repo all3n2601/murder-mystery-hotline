@@ -54,6 +54,20 @@ describe("loadCase", () => {
     );
   });
 
+  it("loads a character's speech style", () => {
+    const c = fixtureCase();
+    c.characters[1]!.speech = { tone: "smooth, condescending", habits: ["calls everyone 'old sport'"], fillers: ["well"], phrases: ["Quite."], tags: ["chuckles"] };
+    const r = loadCase(c);
+    expect(r.ok && r.pack.characters[1]!.speech).toMatchObject({ tone: "smooth, condescending", tags: ["chuckles"] });
+  });
+
+  it("rejects speech tags the TTS isn't known to act out", () => {
+    const errors = errorsFor((c) => {
+      c.characters[1]!.speech = { tone: "smooth", tags: ["whistles"] };
+    });
+    expect(errors).toEqual(expect.arrayContaining([expect.stringContaining("whistles")]));
+  });
+
   it("rejects a case with fewer than two plausible motives", () => {
     const errors = errorsFor((c) => {
       c.characters[0]!.motive = null;

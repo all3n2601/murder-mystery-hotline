@@ -3,3 +3,4 @@ export * from "./nerves.js";
 export * from "./case.js";
 export * from "./game.js";
 export * from "./reply-splitter.js";
+export * from "./tags.js";

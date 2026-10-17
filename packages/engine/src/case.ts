@@ -1,6 +1,7 @@
 import { Id } from "@mmh/protocol";
 import { z } from "zod";
 import { NERVES } from "./nerves.js";
+import { isActedTag } from "./tags.js";
 import { isKnownVoice } from "./voices.js";
 
 // Case pack schema and loader. A pack that fails here never reaches a player.
@@ -17,6 +18,15 @@ const CaseClue = z.object({
   fallbackPhrases: z.array(z.string().min(1)).default([]),
 });
 
+/** How a character talks: what makes them sound like a person instead of a narrator. */
+const Speech = z.object({
+  tone: z.string().min(1), // e.g. "affectionate, teasing, a little tipsy"
+  habits: z.array(z.string()).default([]), // e.g. "calls the detective 'darling'"
+  fillers: z.array(z.string()).default([]), // e.g. "well", "uh", "mm"
+  phrases: z.array(z.string()).default([]), // signature lines they reach for
+  tags: z.array(z.string()).default([]), // acted TTS tags that suit them, e.g. "sighs"
+});
+
 const Character = z.object({
   id: Id,
   name: z.string().min(1),
@@ -28,6 +38,7 @@ const Character = z.object({
   startNerves: z.number().int().min(NERVES.MIN).max(NERVES.HIGHEST_GATE).default(2),
   truth: z.object({ guarded: z.string().min(1), shaken: z.string().min(1) }),
   lies: z.array(z.string()).default([]),
+  speech: Speech.optional(),
   /** Said just before they slam the phone down. */
   hangUpLine: z.string().min(1).default("I've said all I'm going to say. Goodnight."),
   clues: z.array(CaseClue).default([]),
@@ -115,6 +126,12 @@ function validateCase(pack: CasePack): string[] {
     const owner = voiceOwners.get(person.voice);
     if (owner) errors.push(`${person.id} and ${owner} share voice ${person.voice}`);
     voiceOwners.set(person.voice, person.id);
+  }
+
+  for (const c of pack.characters) {
+    for (const tag of c.speech?.tags ?? []) {
+      if (!isActedTag(tag)) errors.push(`${c.id} uses tag [${tag}], which the TTS isn't known to act out`);
+    }
   }
 
   const motives = pack.characters.filter((c) => c.motive !== null).length;

@@ -36,6 +36,16 @@ describe("reply splitter", () => {
     expect(r.spoken).toEqual(["I never saw him.", "Not once."]);
   });
 
+  it("keeps the tags the TTS acts out, and drops other bracketed stage directions", () => {
+    expect(run(["[sighs] Fine."]).spoken).toEqual(["[sighs] Fine."]);
+    expect(run(["[pause] [walks away] (grins) [CLEARS THROAT] Goodnight."]).spoken).toEqual(["[clears throat] Goodnight."]);
+  });
+
+  it("keeps only the first acted tag in a reply, so the sound effects don't pile up", () => {
+    const r = run(["[scoffs] Stop right there. ", "[clears throat] Now, any other clues? [laughs]"]);
+    expect(r.spoken).toEqual(["[scoffs] Stop right there.", "Now, any other clues?"]);
+  });
+
   it("keeps the META block out of speech and returns it separately", () => {
     const r = run(["Leave me alone.\n###META\n", '{"pressure_change":1}']);
     expect(r.spoken.join(" ")).toBe("Leave me alone.");
