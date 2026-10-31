@@ -287,6 +287,36 @@ describe("call session", () => {
     expect(out.ofType("state").at(-1)?.questionsLeft).toBe(5);
   });
 
+  it("asks one question per hold of the talk button, however often the speaker pauses", async () => {
+    const { session, out, stt, llm } = setup({ replies: [["At the desk, friend."]] });
+    await session.handle({ type: "start", caseId: "fixture" });
+    await session.handle({ type: "dial", suspectId: "cook" });
+    await session.handle({ type: "ptt_start" });
+    stt.finishTurn("Mr. Doyle.");
+    stt.finishTurn("Where exactly were you?");
+    stt.partial("between one");
+    stt.willHear("Between 1:25 and 1:55.");
+    await session.handle({ type: "ptt_end" });
+    await session.idle();
+
+    expect(out.ofType("partial").at(-1)).toEqual({ type: "partial", text: "Mr. Doyle. Where exactly were you? between one" });
+    expect(out.ofType("heard")).toEqual([{ type: "heard", text: "Mr. Doyle. Where exactly were you? Between 1:25 and 1:55." }]);
+    expect(llm.requests).toHaveLength(1);
+    expect(out.ofType("state").at(-1)?.questionsLeft).toBe(5); // budget 6 in the fixture: charged once
+  });
+
+  it("still asks when the last words were already finished before talk was released", async () => {
+    const { session, out, stt } = setup({ replies: [["Fine."]] });
+    await session.handle({ type: "start", caseId: "fixture" });
+    await session.handle({ type: "dial", suspectId: "cook" });
+    await session.handle({ type: "ptt_start" });
+    stt.finishTurn("Where were you?");
+    stt.willHear(""); // nothing left to transcribe when talk is released
+    await session.handle({ type: "ptt_end" });
+    await session.idle();
+    expect(out.ofType("heard")).toEqual([{ type: "heard", text: "Where were you?" }]);
+  });
+
   it("answers a spoken question: mic audio reaches STT only while talk is held", async () => {
     const { session, out, stt, tts } = setup({ replies: [["Busy cooking."]] });
     await session.handle({ type: "start", caseId: "fixture" });

@@ -5,6 +5,172 @@
   "difficulty": "medium",
   "questionBudget": 25,
   "briefing": "MAdison Exchange, 2:10 a.m. Night operator Dorothy \"Dot\" Kowalski was found slumped at her board, strangled with one of her own patch cords. Her call log sits open beside the jacks. Every line she connected tonight belongs to someone with a reason to want her quiet. You're at her board now. Plug in, and start asking.",
+  "intro": {
+    "acts": [
+      {
+        "id": "night",
+        "shot": "exterior",
+        "lines": [
+          {
+            "text": "MAdison Exchange.",
+            "pause": 0.5
+          },
+          {
+            "text": "Ten past two in the morning, and raining like it meant it.",
+            "pause": 1.2
+          }
+        ]
+      },
+      {
+        "id": "victim",
+        "shot": "victim",
+        "lines": [
+          {
+            "text": "That's Dot Kowalski.",
+            "pause": 0.4
+          },
+          {
+            "text": "Night operator, position three.",
+            "pause": 0.7
+          },
+          {
+            "text": "Every call on this block went through her hands, love, and she listened to more of them than she ought to.",
+            "pause": 0.6
+          },
+          {
+            "text": "People told Dot things.",
+            "pause": 0.5
+          },
+          {
+            "text": "And Dot remembered.",
+            "pause": 1.3
+          }
+        ]
+      },
+      {
+        "id": "scene",
+        "shot": "interior",
+        "lines": [
+          {
+            "text": "I found her slumped at her board, like she'd nodded off.",
+            "pause": 0.5
+          },
+          {
+            "text": "Haah… She hadn't.",
+            "pause": 0.9
+          },
+          {
+            "text": "Strangled with one of her own patch cords.",
+            "pause": 0.6
+          },
+          {
+            "text": "The police are keeping that quiet, so you keep it under your hat.",
+            "pause": 0.5
+          },
+          {
+            "text": "Anybody else who knows it was there.",
+            "pause": 1.4
+          }
+        ]
+      },
+      {
+        "id": "suspects",
+        "shot": "suspects",
+        "lines": [
+          {
+            "text": "Four lines lit up on her board tonight.",
+            "pause": 0.8
+          },
+          {
+            "text": "Frank Doyle. Runs the night desk at the Hotel Marlowe, right across the street. Dot put his calls through every night. Smooth as a new dime. Heh heh.",
+            "suspect": "doyle",
+            "pause": 0.9
+          },
+          {
+            "text": "Evelyn Ashford. A society widow. Rings long-distance every night at half past one, regular as church.",
+            "suspect": "evelyn",
+            "pause": 0.9
+          },
+          {
+            "text": "Leo Brandt. Crime reporter at the Herald. Dot sold him tips off the lines.",
+            "suspect": "leo",
+            "pause": 0.9
+          },
+          {
+            "text": "Officer Tom Riley. Walks the beat outside. Dot's ex-fiancé. She gave him back the ring last month.",
+            "suspect": "riley",
+            "pause": 1.3
+          }
+        ]
+      },
+      {
+        "id": "log",
+        "shot": "log",
+        "lines": [
+          {
+            "text": "Here's her log.",
+            "pause": 0.4
+          },
+          {
+            "text": "Every call she put through tonight, and when.",
+            "pause": 0.5
+          },
+          {
+            "text": "Somebody's story won't fit it.",
+            "pause": 0.6
+          },
+          {
+            "text": "And after one thirty-eight, the handwriting isn't hers.",
+            "pause": 1.4
+          }
+        ]
+      },
+      {
+        "id": "job",
+        "shot": "board",
+        "lines": [
+          {
+            "text": "You've got twenty-five questions before the switchboard cuts you off.",
+            "pause": 0.5
+          },
+          {
+            "text": "Ring them. Push them. Catch them out.",
+            "pause": 0.6
+          },
+          {
+            "text": "When you know who, and you can prove it, file the charge.",
+            "pause": 0.7
+          },
+          {
+            "text": "Plug in, love.",
+            "pause": 0.4
+          },
+          {
+            "text": "Start asking.",
+            "pause": 1.0
+          }
+        ]
+      }
+    ],
+    "leads": [
+      {
+        "suspect": "riley",
+        "text": "Signed in at 1:15 and argued with her. His call box rang through from across town at 1:32. Was he really there?"
+      },
+      {
+        "suspect": "evelyn",
+        "text": "Her long-distance call ran 1:30 to 1:50, same as every night. Why would Dot care who she rang?"
+      },
+      {
+        "suspect": "leo",
+        "text": "Dot sold him stories. What did she promise him tonight, and where was he waiting?"
+      },
+      {
+        "suspect": "doyle",
+        "text": "The Marlowe desk line went quiet from 1:25 to 1:55. A busy night manager, silent for half an hour?"
+      }
+    ]
+  },
   "narrator": {
     "id": "hale",
     "name": "Mrs. Hale",
@@ -14,7 +180,7 @@
     {
       "id": "call_log",
       "title": "Dot's call log",
-      "text": "1:15 Call box 12 (Riley) to exchange. 1:25 last call from MA-4410 (Hotel Marlowe desk). 1:30 to 1:50 MA-2207 (Ashford) connected long-distance. 1:32 Call box 12 rings through from across town. 1:55 MA-4410 resumes calls. No entries after 1:38 are in Dot's handwriting."
+      "text": "1:15 Call box 12 (Officer Riley) rings the exchange.\n1:25 Last call from MA-4410, the Hotel Marlowe desk.\n1:30–1:50 MA-2207 (Mrs. Ashford) on a long-distance call.\n1:32 Call box 12 rings through again, from across town.\n1:55 MA-4410 starts placing calls again.\nNote: nothing written after 1:38 is in Dot's handwriting."
     },
     {
       "id": "the_cord",
@@ -56,6 +222,7 @@
       "name": "Frank Doyle",
       "role": "night manager of the Hotel Marlowe",
       "line": "MA-4410",
+      "hook": "Runs the night desk at the Hotel Marlowe, right across the street. Dot put his calls through every night. Smooth as a new dime.",
       "voice": "george",
       "persona": "Smooth, clipped, used to giving orders to bellhops. Calls the detective 'friend'. Gets icy and then loud when cornered.",
       "motive": "Dot listened in on his calls arranging payoffs to a city councilman, and she was squeezing him for money.",
@@ -107,6 +274,28 @@
         "text": "All right! She was bleeding me dry. I put on Eddie's coat, went over there, and I just wanted her to stop talking. I just wanted her to stop."
       },
       "hangUpLine": "We're finished here, friend. Call my lawyer.",
+      "pressurePoints": [
+        "1:25",
+        "1:55",
+        "one twenty-five",
+        "one fifty-five",
+        "dead",
+        "went quiet",
+        "silent",
+        "doorman",
+        "coat",
+        "side door",
+        "City Hall",
+        "payoff",
+        "payoffs",
+        "councilman",
+        "Hargrove",
+        "blackmail",
+        "blackmailing",
+        "her own cord",
+        "patch cord",
+        "strangled"
+      ],
       "speech": {
         "tone": "smooth hotel-manager charm, clipped and confident; goes icy, then loud, when cornered",
         "habits": [
@@ -124,9 +313,7 @@
           "You're barking up the wrong tree."
         ],
         "tags": [
-          "chuckles",
-          "scoffs",
-          "clears throat"
+          "chuckles"
         ]
       }
     },
@@ -135,6 +322,7 @@
       "name": "Evelyn Ashford",
       "role": "society widow",
       "line": "MA-2207",
+      "hook": "A society widow. Rings long-distance every night at half past one, regular as church.",
       "voice": "vera",
       "persona": "Cut-glass manners, bored by policemen, a little tipsy at this hour. Calls the detective 'darling' when she wants to be rid of him.",
       "motive": "Dot overheard her nightly calls to a married lover and was blackmailing her.",
@@ -164,6 +352,18 @@
         }
       ],
       "hangUpLine": "I've had quite enough of you, darling. Goodnight.",
+      "pressurePoints": [
+        "Whitcombe",
+        "Boston",
+        "married",
+        "lover",
+        "affair",
+        "blackmail",
+        "blackmailing",
+        "twenty dollars",
+        "paying her",
+        "money"
+      ],
       "speech": {
         "tone": "affectionate and teasing, cut-glass manners, a little tipsy at this hour, bored by policemen",
         "habits": [
@@ -191,6 +391,7 @@
       "name": "Leo Brandt",
       "role": "crime reporter at the Herald",
       "line": "MA-9031",
+      "hook": "Crime reporter at the Herald. Dot sold him tips off the lines.",
       "voice": "michael",
       "persona": "Fast-talking, cynical, always angling for a quote. Grieving under the wisecracks, because he liked Dot. Trades information for information.",
       "motive": "Dot was his paid tipster and had threatened to take her big story to a rival paper.",
@@ -236,6 +437,17 @@
         }
       ],
       "hangUpLine": "That's all you get for free, pal. Read it in the morning edition.",
+      "pressurePoints": [
+        "didn't go up",
+        "didn't you go up",
+        "waited outside",
+        "waiting outside",
+        "sat in your car",
+        "story",
+        "tip",
+        "City Hall",
+        "rival paper"
+      ],
       "speech": {
         "tone": "fast-talking, cynical newspaperman; wisecracks over real grief for Dot",
         "habits": [
@@ -253,7 +465,6 @@
           "What's in it for me, chief?"
         ],
         "tags": [
-          "scoffs",
           "laughs",
           "sighs"
         ]
@@ -264,6 +475,7 @@
       "name": "Officer Tom Riley",
       "role": "beat cop, Dot's ex-fiancé",
       "line": "Call box 12",
+      "hook": "Walks the beat outside. Dot's ex-fiancé. She gave him back the ring last month.",
       "voice": "jean",
       "persona": "Big, gruff, defensive, grieving and angry about it. Resents a detective questioning one of his own.",
       "motive": "Dot broke off their engagement last month, and he took it badly.",
@@ -294,6 +506,18 @@
         }
       ],
       "hangUpLine": "Talk to my sergeant. I'm done with you.",
+      "pressurePoints": [
+        "ring",
+        "engagement",
+        "fiancé",
+        "fiance",
+        "broke it off",
+        "argued",
+        "argument",
+        "1:15",
+        "jealous",
+        "night book"
+      ],
       "speech": {
         "tone": "big, gruff and grudging; grieving and won't admit it; hates being grilled by another cop",
         "habits": [
@@ -310,9 +534,7 @@
           "Drop it, pal."
         ],
         "tags": [
-          "sighs",
-          "clears throat",
-          "coughs"
+          "sighs"
         ]
       }
     }

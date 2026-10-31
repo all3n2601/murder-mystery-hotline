@@ -1,6 +1,15 @@
 # AssemblyAI streaming TTS protocol (verified by probe)
 
-Not in AssemblyAI's public docs as of 2026-10-17. Everything here comes from running `tools/PROTOTYPE-tts-probe.ts` and `tools/PROTOTYPE-tts-concurrency.ts` against the live endpoint on a free-plan account on 2026-10-17. Raw results are in `probe-out/tts-probe.json`.
+> **Superseded in part on 2026-10-31.** AssemblyAI-TTS-1 launched on 2026-10-27 and is now documented under <https://www.assemblyai.com/docs/tts/>. The differences are listed in `docs-diff-2026-10-31.md`. A live probe on 2026-10-31 found:
+> - **`wss://tts.us.assemblyai.com/v1/ws?voice_id=aai-<name>`** is TTS-1, the model the adapter uses now. It refuses `voice=` with 3006 ("voice is retired: name the voice with voice_id"). `aai-iris` resolves too (through the voice library), so every name below has an `aai-` form.
+> - **The old host `streaming-tts.assemblyai.com` still answers with the pre-launch model.** It honours `voice=`, has no inactivity timeout, and ignores `voice_id` (it falls back to `jane`).
+> - **On TTS-1, an idle session closes after 120 s** (3006 `inactivity_timeout`). `KeepAlive` resets the timer, so the adapter sends one every 60 s on an open line.
+> - **TTS-1 speaks written fillers.** "It's, uh, right here in front of the, uh, um, thing." came back from STT with all three fillers; the old model dropped two. Stutters (`c-c-can't`) and false starts (`That- that`) are performed too.
+> - **The docs count only new sessions** (5 a minute on free), not open ones. The 3-session cap below wasn't re-measured.
+>
+> The rest of this file describes the old host as probed on 2026-10-17/18.
+
+Not in AssemblyAI's public docs as of 2026-10-17. Everything here comes from probing the live endpoint on a free-plan account on 2026-10-17 and 2026-10-18. The original probe scripts were removed once their findings were written up here; they are in git history (`tools/PROTOTYPE-tts-probe.ts`, `tools/PROTOTYPE-tts-concurrency.ts`). Raw results are in `probe-out/tts-probe.json` (git-ignored).
 
 ## Connect
 
@@ -77,8 +86,10 @@ The server lists these as the only valid types: `Generate`, `Flush`, `Terminate`
 - A cancelled flush never gets a `FlushDone`.
 - `Terminate` is answered with `{ "type": "Termination" }`, then the server closes the socket.
 
-## Acted tags
+## Bracket tags are read aloud (corrected 2026-10-18)
 
-The engine performs bracket tags instead of reading them. Verified two ways: by ear, and because the tag shows up in `WordBoundaries` with zero length and a sound gap before the next word.
-- **Acted:** `[sighs]`, `[laughs]`, `[chuckles]`, `[gasps]`, `[clears throat]`, `[coughs]`, `[scoffs]`.
-- **Not yet tested:** `[sniffs]`, `[whispers]`, `[groans]`, `[exhales]`, `[nervous laugh]`, `[pause]`.
+**The engine does not perform tags.** It reads `[sighs]`, `[laughs]`, `[chuckles]`, `[gasps]`, `[clears throat]`, `[coughs]` and `[scoffs]` aloud as words, at the start of a line or mid-line, in `george` and `anna`. `(sighs)` and `*sighs*` are read aloud too. Verified by transcribing the rendered audio with STT; the probe is `tools/probe-tts-markup.ts` with `tools/tts-markup-candidates.json` (see [tts-markup.md](tts-markup.md)).
+
+The 2026-10-17 note that called these "acted" was wrong. A tag shows up in `WordBoundaries` with zero length, but the gap after it is the word being spoken, so zero-length boundaries prove nothing.
+
+What the engine does perform, written as plain text: `Ha! Ha ha.` (laugh), `Heh heh.` (chuckle), `Haah…` (sigh), and an em-dash cut-off (`I was going to— No.`). Ellipses add no pause. The reply splitter translates `[sighs]`, `[laughs]` and `[chuckles]` into those spellings and drops every other bracket (`packages/engine/src/tags.ts`).

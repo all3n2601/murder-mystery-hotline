@@ -37,6 +37,7 @@ export const PublicSuspect = z.object({
   name: z.string(),
   role: z.string(),
   line: z.string(), // switchboard jack label
+  hook: z.string().optional(), // one public, non-spoiling line introducing them
 });
 export type PublicSuspect = z.infer<typeof PublicSuspect>;
 
@@ -50,6 +51,26 @@ export const Clue = z.object({
 export const STARTING_EVIDENCE = "start";
 export type Clue = z.infer<typeof Clue>;
 
+/** Where an intro act's camera is. The client maps each to a backdrop and a move. */
+export const IntroShot = z.enum(["exterior", "victim", "interior", "suspects", "log", "board"]);
+export type IntroShot = z.infer<typeof IntroShot>;
+
+/** The narrated opening, act by act. `pause` is seconds of silence after a line. */
+export const Intro = z.object({
+  acts: z.array(
+    z.object({
+      id: Id,
+      shot: IntroShot,
+      lines: z.array(z.object({ text: z.string().min(1), suspect: Id.optional(), pause: z.number().min(0).max(5).optional() })).min(1),
+    }),
+  ),
+});
+export type Intro = z.infer<typeof Intro>;
+
+/** A starting lead pinned in the notebook: points at a person without giving the answer. */
+export const Lead = z.object({ suspect: Id, text: z.string().min(1) });
+export type Lead = z.infer<typeof Lead>;
+
 export const PublicCaseState = z.object({
   caseId: Id,
   title: z.string(),
@@ -58,6 +79,8 @@ export const PublicCaseState = z.object({
   questionBudget: z.number().int().nonnegative(),
   suspects: z.array(PublicSuspect),
   startingEvidence: z.array(Clue),
+  intro: z.lazy(() => Intro).optional(),
+  leads: z.array(z.lazy(() => Lead)).default([]),
 });
 export type PublicCaseState = z.infer<typeof PublicCaseState>;
 

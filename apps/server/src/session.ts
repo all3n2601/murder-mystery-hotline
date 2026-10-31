@@ -3,6 +3,9 @@ import { encodeAudioFrame, type ClientMessage, type ServerMessage } from "@mmh/p
 import { createChannel } from "./channel.js";
 import type { LlmPort, SttPort, SttSession, TtsLine, TtsPort } from "./ports.js";
 
+/** How long to wait, after talk is released, for STT's last transcript before asking anyway. */
+const ENDPOINT_WAIT_MS = 1500;
+
 // One player's connection: turns client messages into game moves, and game moves into
 // speech. Owns the per-call STT session and the utterance currently being spoken.
 
@@ -72,6 +75,11 @@ export function createSession(deps: SessionDeps) {
   let stt: SttSession | null = null;
   let talking = false;
   let talkBytes = 0;
+  // One hold of the talk button is one question. STT ends a turn on any short pause, so its
+  // finished transcripts are collected here and asked as one when talk is released.
+  let heardParts: string[] = [];
+  let awaitingEndpoint = false;
+  let endpointTimer: NodeJS.Timeout | null = null;
   let callsMade = 0;
   let lastDialAt = -Infinity;
   let callTimer: NodeJS.Timeout | null = null;
@@ -293,8 +301,12 @@ export function createSession(deps: SessionDeps) {
         }, limits.maxCallMs);
         callTimer.unref?.();
         stt = deps.stt.open({
-          onPartial: (text) => deps.send({ type: "partial", text }),
-          onFinal: (text) => ask(text),
+          onPartial: (text) => deps.send({ type: "partial", text: [...heardParts, text].join(" ") }),
+          onFinal: (text) => {
+            if (!talking && !awaitingEndpoint) return; // a straggler after the question was asked
+            if (text.trim()) heardParts.push(text.trim());
+            if (!talking) askHeard(); // the transcript the forced endpoint flushed out
+          },
           onError: (err) => {
             deps.onError?.("stt", err);
             error("stt_failed", "The line's crackling. Type your question instead.");
@@ -306,14 +318,14 @@ export function createSession(deps: SessionDeps) {
         return;
       }
       case "ptt_start":
+        if (awaitingEndpoint) askHeard(); // pressed again before the last question was finished
         speaking?.interrupt(msg.interrupted?.playedMs);
         talking = true;
         talkBytes = 0;
         return;
       case "ptt_end":
         if (!talking) return;
-        talking = false;
-        stt?.endTurn();
+        releaseTalk();
         return;
       case "ask":
         speaking?.interrupt();
@@ -340,10 +352,34 @@ export function createSession(deps: SessionDeps) {
     }
   }
 
+  /** Talk released: flush STT, and ask whatever this hold collected as one question. */
+  function releaseTalk() {
+    talking = false;
+    awaitingEndpoint = true;
+    stt?.endTurn();
+    // If everything was already transcribed, STT may have nothing more to send.
+    if (endpointTimer) clearTimeout(endpointTimer);
+    endpointTimer = setTimeout(() => awaitingEndpoint && askHeard(), ENDPOINT_WAIT_MS);
+    endpointTimer.unref?.();
+  }
+
+  function askHeard() {
+    if (endpointTimer) clearTimeout(endpointTimer);
+    endpointTimer = null;
+    awaitingEndpoint = false;
+    const question = heardParts.join(" ");
+    heardParts = [];
+    ask(question);
+  }
+
   /** Hangs up: stops listening and, unless the suspect has a last word to say, closes their line. */
   function endCall(opts: { keepLine?: boolean } = {}) {
     if (callTimer) clearTimeout(callTimer);
     callTimer = null;
+    if (endpointTimer) clearTimeout(endpointTimer);
+    endpointTimer = null;
+    awaitingEndpoint = false;
+    heardParts = [];
     stt?.close();
     stt = null;
     talking = false;
@@ -360,8 +396,7 @@ export function createSession(deps: SessionDeps) {
       talkBytes += pcm.length;
       if (talkBytes > limits.maxTalkBytes) {
         // Someone holding the button forever: answer what they've said so far.
-        talking = false;
-        stt.endTurn();
+        releaseTalk();
       }
     },
     /** A reconnecting player gets their case, notebook and state back. */

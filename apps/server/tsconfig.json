@@ -2,6 +2,5 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "outDir": "dist", "rootDir": "src" },
   "include": ["src"],
-  "exclude": ["src/PROTOTYPE-*"],
   "references": [{ "path": "../../packages/protocol" }, { "path": "../../packages/engine" }]
 }

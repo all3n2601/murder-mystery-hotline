@@ -36,19 +36,32 @@ describe("reply splitter", () => {
     expect(r.spoken).toEqual(["I never saw him.", "Not once."]);
   });
 
-  it("keeps the tags the TTS acts out, and drops other bracketed stage directions", () => {
-    expect(run(["[sighs] Fine."]).spoken).toEqual(["[sighs] Fine."]);
-    expect(run(["[pause] [walks away] (grins) [CLEARS THROAT] Goodnight."]).spoken).toEqual(["[clears throat] Goodnight."]);
+  // The TTS reads bracket tags aloud (verified 2026-10-18 by transcribing its audio), but it
+  // performs these spellings. See docs/reference/assemblyai/tts-markup.md.
+  it("turns sound cues into spellings the TTS performs instead of reading the tag aloud", () => {
+    expect(run(["[sighs] Fine."]).spoken).toEqual(["Haah… Fine."]);
+    expect(run(["Smooth as a new dime. [laughs]"]).spoken).toEqual(["Smooth as a new dime.", "Ha! Ha ha."]);
+    expect(run(["[CHUCKLES] Sure, friend."]).spoken).toEqual(["Heh heh. Sure, friend."]);
   });
 
-  it("keeps only the first acted tag in a reply, so the sound effects don't pile up", () => {
-    const r = run(["[scoffs] Stop right there. ", "[clears throat] Now, any other clues? [laughs]"]);
-    expect(r.spoken).toEqual(["[scoffs] Stop right there.", "Now, any other clues?"]);
+  it("drops every bracketed cue it can't perform, including ones it reads as words", () => {
+    expect(run(["[pause] [walks away] (grins) [clears throat] [scoffs] Goodnight."]).spoken).toEqual(["Goodnight."]);
+  });
+
+  it("performs only the first sound cue in a reply, so the sounds don't pile up", () => {
+    const r = run(["[laughs] Stop right there. ", "[sighs] Now, any other clues? [chuckles]"]);
+    expect(r.spoken).toEqual(["Ha! Ha ha. Stop right there.", "Now, any other clues?"]);
   });
 
   it("keeps the META block out of speech and returns it separately", () => {
     const r = run(["Leave me alone.\n###META\n", '{"pressure_change":1}']);
     expect(r.spoken.join(" ")).toBe("Leave me alone.");
     expect(r.meta).toBe('{"pressure_change":1}');
+  });
+
+  it("treats a bare JSON block as META when the small model forgets the marker", () => {
+    const r = run(["You're barking up the wrong tree. ", '{"reveal": 0, ', '"pressure_change": 1}']);
+    expect(r.spoken.join(" ")).toBe("You're barking up the wrong tree.");
+    expect(r.meta).toBe('{"reveal": 0, "pressure_change": 1}');
   });
 });

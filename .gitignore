@@ -5,3 +5,5 @@ dist/
 .agents.json
 probe-out/
 .DS_Store
+.playwright-mcp/
+cases/*/art/originals/

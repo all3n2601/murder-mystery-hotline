@@ -4,3 +4,4 @@ export * from "./case.js";
 export * from "./game.js";
 export * from "./reply-splitter.js";
 export * from "./tags.js";
+export * from "./narration.js";

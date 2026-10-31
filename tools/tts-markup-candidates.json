@@ -1,0 +1,14 @@
+[
+  { "name": "control",          "text": "I found her at her board. She hadn't nodded off.", "leak": [] },
+  { "name": "phon-sigh-haah",   "text": "I found her at her board. Haah… She hadn't nodded off.", "leak": ["sigh"] },
+  { "name": "phon-sigh-hhh",    "text": "I found her at her board. Hhh. She hadn't nodded off.", "leak": ["sigh"] },
+  { "name": "phon-mm",          "text": "I found her at her board. Mm. She hadn't nodded off.", "leak": [] },
+  { "name": "phon-laugh",       "text": "Smooth as a new dime. Ha! Ha ha. Dot liked him.", "leak": ["laugh"] },
+  { "name": "phon-ahem-tch",    "text": "Ahem. Your job, love. Tch. Twenty-five questions.", "leak": ["clear", "throat"] },
+  { "name": "ellipsis-unicode", "text": "Anybody else who knows it… was there.", "leak": [] },
+  { "name": "ellipsis-dots",    "text": "Anybody else who knows it... was there.", "leak": [] },
+  { "name": "punct-cutoff",     "text": "I was going to— No. No! You think I did it?!", "leak": [] },
+  { "name": "temp-1.0",         "text": "I found her at her board. She hadn't nodded off.", "leak": [], "query": { "temperature": "1.0" } },
+  { "name": "temp-0.7",         "text": "I found her at her board. She hadn't nodded off.", "leak": [], "query": { "temperature": "0.7" } },
+  { "name": "voice-cosette",    "text": "I found her at her board. She hadn't nodded off.", "leak": [], "query": { "voice": "cosette" } }
+]

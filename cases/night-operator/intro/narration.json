@@ -1,0 +1,1354 @@
+{
+ "voice": "anna",
+ "durationMs": 100304,
+ "acts": [
+  {
+   "id": "night",
+   "startMs": 600
+  },
+  {
+   "id": "victim",
+   "startMs": 6687
+  },
+  {
+   "id": "scene",
+   "startMs": 21611
+  },
+  {
+   "id": "suspects",
+   "startMs": 37991
+  },
+  {
+   "id": "log",
+   "startMs": 74327
+  },
+  {
+   "id": "job",
+   "startMs": 85776
+  }
+ ],
+ "lines": [
+  {
+   "act": "night",
+   "text": "MAdison Exchange.",
+   "startMs": 600,
+   "endMs": 1685
+  },
+  {
+   "act": "night",
+   "text": "Ten past two in the morning, and raining like it meant it.",
+   "startMs": 2185,
+   "endMs": 5487
+  },
+  {
+   "act": "victim",
+   "text": "That's Dot Kowalski.",
+   "startMs": 6687,
+   "endMs": 8051
+  },
+  {
+   "act": "victim",
+   "text": "Night operator, position three.",
+   "startMs": 8451,
+   "endMs": 10346
+  },
+  {
+   "act": "victim",
+   "text": "Every call on this block went through her hands, love, and she listened to more of them than she ought to.",
+   "startMs": 11046,
+   "endMs": 16579
+  },
+  {
+   "act": "victim",
+   "text": "People told Dot things.",
+   "startMs": 17179,
+   "endMs": 18772
+  },
+  {
+   "act": "victim",
+   "text": "And Dot remembered.",
+   "startMs": 19272,
+   "endMs": 20311
+  },
+  {
+   "act": "scene",
+   "text": "I found her slumped at her board, like she'd nodded off.",
+   "startMs": 21611,
+   "endMs": 24398
+  },
+  {
+   "act": "scene",
+   "text": "Haah… She hadn't.",
+   "startMs": 24898,
+   "endMs": 26835
+  },
+  {
+   "act": "scene",
+   "text": "Strangled with one of her own patch cords.",
+   "startMs": 27735,
+   "endMs": 30060
+  },
+  {
+   "act": "scene",
+   "text": "The police are keeping that quiet, so you keep it under your hat.",
+   "startMs": 30660,
+   "endMs": 34187
+  },
+  {
+   "act": "scene",
+   "text": "Anybody else who knows it was there.",
+   "startMs": 34687,
+   "endMs": 36591
+  },
+  {
+   "act": "suspects",
+   "text": "Four lines lit up on her board tonight.",
+   "startMs": 37991,
+   "endMs": 39928
+  },
+  {
+   "act": "suspects",
+   "text": "Frank Doyle. Runs the night desk at the Hotel Marlowe, right across the street. Dot put his calls through every night. Smooth as a new dime. Heh heh.",
+   "suspect": "doyle",
+   "startMs": 40728,
+   "endMs": 50747
+  },
+  {
+   "act": "suspects",
+   "text": "Evelyn Ashford. A society widow. Rings long-distance every night at half past one, regular as church.",
+   "suspect": "evelyn",
+   "startMs": 51647,
+   "endMs": 58862
+  },
+  {
+   "act": "suspects",
+   "text": "Leo Brandt. Crime reporter at the Herald. Dot sold him tips off the lines.",
+   "suspect": "leo",
+   "startMs": 59762,
+   "endMs": 64574
+  },
+  {
+   "act": "suspects",
+   "text": "Officer Tom Riley. Walks the beat outside. Dot's ex-fiancé. She gave him back the ring last month.",
+   "suspect": "riley",
+   "startMs": 65474,
+   "endMs": 73027
+  },
+  {
+   "act": "log",
+   "text": "Here's her log.",
+   "startMs": 74327,
+   "endMs": 75312
+  },
+  {
+   "act": "log",
+   "text": "Every call she put through tonight, and when.",
+   "startMs": 75712,
+   "endMs": 78098
+  },
+  {
+   "act": "log",
+   "text": "Somebody's story won't fit it.",
+   "startMs": 78598,
+   "endMs": 80245
+  },
+  {
+   "act": "log",
+   "text": "And after one thirty-eight, the handwriting isn't hers.",
+   "startMs": 80845,
+   "endMs": 84376
+  },
+  {
+   "act": "job",
+   "text": "You've got twenty-five questions before the switchboard cuts you off.",
+   "startMs": 85776,
+   "endMs": 89130
+  },
+  {
+   "act": "job",
+   "text": "Ring them. Push them. Catch them out.",
+   "startMs": 89630,
+   "endMs": 92022
+  },
+  {
+   "act": "job",
+   "text": "When you know who, and you can prove it, file the charge.",
+   "startMs": 92622,
+   "endMs": 95969
+  },
+  {
+   "act": "job",
+   "text": "Plug in, love.",
+   "startMs": 96669,
+   "endMs": 97941
+  },
+  {
+   "act": "job",
+   "text": "Start asking.",
+   "startMs": 98341,
+   "endMs": 99304
+  }
+ ],
+ "words": [
+  {
+   "word": "MAdison",
+   "start": 680,
+   "end": 965
+  },
+  {
+   "word": "Exchange.",
+   "start": 1015,
+   "end": 1535
+  },
+  {
+   "word": "Ten",
+   "start": 2265,
+   "end": 2396
+  },
+  {
+   "word": "past",
+   "start": 2527,
+   "end": 2788
+  },
+  {
+   "word": "two",
+   "start": 2853,
+   "end": 2968
+  },
+  {
+   "word": "in",
+   "start": 3098,
+   "end": 3131
+  },
+  {
+   "word": "the",
+   "start": 3180,
+   "end": 3262
+  },
+  {
+   "word": "morning,",
+   "start": 3278,
+   "end": 3687
+  },
+  {
+   "word": "and",
+   "start": 4161,
+   "end": 4226
+  },
+  {
+   "word": "raining",
+   "start": 4308,
+   "end": 4585
+  },
+  {
+   "word": "like",
+   "start": 4651,
+   "end": 4831
+  },
+  {
+   "word": "it",
+   "start": 4880,
+   "end": 4929
+  },
+  {
+   "word": "meant",
+   "start": 4961,
+   "end": 5223
+  },
+  {
+   "word": "it.",
+   "start": 5304,
+   "end": 5337
+  },
+  {
+   "word": "That's",
+   "start": 6767,
+   "end": 6984
+  },
+  {
+   "word": "Dot",
+   "start": 7117,
+   "end": 7234
+  },
+  {
+   "word": "Kowalski.",
+   "start": 7367,
+   "end": 7901
+  },
+  {
+   "word": "Night",
+   "start": 8531,
+   "end": 8795
+  },
+  {
+   "word": "operator,",
+   "start": 8861,
+   "end": 9438
+  },
+  {
+   "word": "position",
+   "start": 9603,
+   "end": 9966
+  },
+  {
+   "word": "three.",
+   "start": 10081,
+   "end": 10196
+  },
+  {
+   "word": "Every",
+   "start": 11126,
+   "end": 11321
+  },
+  {
+   "word": "call",
+   "start": 11434,
+   "end": 11629
+  },
+  {
+   "word": "on",
+   "start": 11678,
+   "end": 11726
+  },
+  {
+   "word": "this",
+   "start": 11775,
+   "end": 11889
+  },
+  {
+   "word": "block",
+   "start": 12018,
+   "end": 12343
+  },
+  {
+   "word": "went",
+   "start": 12343,
+   "end": 12521
+  },
+  {
+   "word": "through",
+   "start": 12570,
+   "end": 12683
+  },
+  {
+   "word": "her",
+   "start": 12748,
+   "end": 12829
+  },
+  {
+   "word": "hands,",
+   "start": 12894,
+   "end": 13267
+  },
+  {
+   "word": "love,",
+   "start": 13559,
+   "end": 13753
+  },
+  {
+   "word": "and",
+   "start": 14532,
+   "end": 14629
+  },
+  {
+   "word": "she",
+   "start": 14629,
+   "end": 14726
+  },
+  {
+   "word": "listened",
+   "start": 14775,
+   "end": 15067
+  },
+  {
+   "word": "to",
+   "start": 15099,
+   "end": 15180
+  },
+  {
+   "word": "more",
+   "start": 15180,
+   "end": 15359
+  },
+  {
+   "word": "of",
+   "start": 15489,
+   "end": 15521
+  },
+  {
+   "word": "them",
+   "start": 15586,
+   "end": 15699
+  },
+  {
+   "word": "than",
+   "start": 15813,
+   "end": 15861
+  },
+  {
+   "word": "she",
+   "start": 15910,
+   "end": 16024
+  },
+  {
+   "word": "ought",
+   "start": 16296,
+   "end": 16316
+  },
+  {
+   "word": "to.",
+   "start": 16316,
+   "end": 16429
+  },
+  {
+   "word": "People",
+   "start": 17259,
+   "end": 17608
+  },
+  {
+   "word": "told",
+   "start": 17675,
+   "end": 17940
+  },
+  {
+   "word": "Dot",
+   "start": 18007,
+   "end": 18123
+  },
+  {
+   "word": "things.",
+   "start": 18323,
+   "end": 18622
+  },
+  {
+   "word": "And",
+   "start": 19352,
+   "end": 19437
+  },
+  {
+   "word": "Dot",
+   "start": 19521,
+   "end": 19639
+  },
+  {
+   "word": "remembered.",
+   "start": 19706,
+   "end": 20161
+  },
+  {
+   "word": "I",
+   "start": 21691,
+   "end": 21707
+  },
+  {
+   "word": "found",
+   "start": 21757,
+   "end": 22035
+  },
+  {
+   "word": "her",
+   "start": 22084,
+   "end": 22183
+  },
+  {
+   "word": "slumped",
+   "start": 22183,
+   "end": 22543
+  },
+  {
+   "word": "at",
+   "start": 22658,
+   "end": 22707
+  },
+  {
+   "word": "her",
+   "start": 22740,
+   "end": 22773
+  },
+  {
+   "word": "board,",
+   "start": 22904,
+   "end": 23182
+  },
+  {
+   "word": "like",
+   "start": 23330,
+   "end": 23494
+  },
+  {
+   "word": "she'd",
+   "start": 23494,
+   "end": 23707
+  },
+  {
+   "word": "nodded",
+   "start": 23740,
+   "end": 24002
+  },
+  {
+   "word": "off.",
+   "start": 24068,
+   "end": 24248
+  },
+  {
+   "word": "Haah…",
+   "start": 24978,
+   "end": 25078
+  },
+  {
+   "word": "She",
+   "start": 26056,
+   "end": 26155
+  },
+  {
+   "word": "hadn't.",
+   "start": 26221,
+   "end": 26685
+  },
+  {
+   "word": "Strangled",
+   "start": 27815,
+   "end": 28310
+  },
+  {
+   "word": "with",
+   "start": 28376,
+   "end": 28475
+  },
+  {
+   "word": "one",
+   "start": 28541,
+   "end": 28590
+  },
+  {
+   "word": "of",
+   "start": 28656,
+   "end": 28739
+  },
+  {
+   "word": "her",
+   "start": 28788,
+   "end": 28821
+  },
+  {
+   "word": "own",
+   "start": 29036,
+   "end": 29085
+  },
+  {
+   "word": "patch",
+   "start": 29217,
+   "end": 29481
+  },
+  {
+   "word": "cords.",
+   "start": 29547,
+   "end": 29910
+  },
+  {
+   "word": "The",
+   "start": 30740,
+   "end": 30773
+  },
+  {
+   "word": "police",
+   "start": 30838,
+   "end": 31115
+  },
+  {
+   "word": "are",
+   "start": 31230,
+   "end": 31295
+  },
+  {
+   "word": "keeping",
+   "start": 31328,
+   "end": 31605
+  },
+  {
+   "word": "that",
+   "start": 31654,
+   "end": 31768
+  },
+  {
+   "word": "quiet,",
+   "start": 31899,
+   "end": 32323
+  },
+  {
+   "word": "so",
+   "start": 32894,
+   "end": 33041
+  },
+  {
+   "word": "you",
+   "start": 33057,
+   "end": 33123
+  },
+  {
+   "word": "keep",
+   "start": 33204,
+   "end": 33384
+  },
+  {
+   "word": "it",
+   "start": 33449,
+   "end": 33482
+  },
+  {
+   "word": "under",
+   "start": 33596,
+   "end": 33710
+  },
+  {
+   "word": "your",
+   "start": 33710,
+   "end": 33857
+  },
+  {
+   "word": "hat.",
+   "start": 33857,
+   "end": 34037
+  },
+  {
+   "word": "Anybody",
+   "start": 34767,
+   "end": 35132
+  },
+  {
+   "word": "else",
+   "start": 35264,
+   "end": 35446
+  },
+  {
+   "word": "who",
+   "start": 35579,
+   "end": 35612
+  },
+  {
+   "word": "knows",
+   "start": 35662,
+   "end": 35877
+  },
+  {
+   "word": "it",
+   "start": 35944,
+   "end": 36026
+  },
+  {
+   "word": "was",
+   "start": 36076,
+   "end": 36192
+  },
+  {
+   "word": "there.",
+   "start": 36258,
+   "end": 36441
+  },
+  {
+   "word": "Four",
+   "start": 38071,
+   "end": 38187
+  },
+  {
+   "word": "lines",
+   "start": 38320,
+   "end": 38602
+  },
+  {
+   "word": "lit",
+   "start": 38668,
+   "end": 38784
+  },
+  {
+   "word": "up",
+   "start": 38834,
+   "end": 38933
+  },
+  {
+   "word": "on",
+   "start": 38999,
+   "end": 39033
+  },
+  {
+   "word": "her",
+   "start": 39149,
+   "end": 39182
+  },
+  {
+   "word": "board",
+   "start": 39248,
+   "end": 39513
+  },
+  {
+   "word": "tonight.",
+   "start": 39563,
+   "end": 39778
+  },
+  {
+   "word": "Frank",
+   "start": 40808,
+   "end": 41082
+  },
+  {
+   "word": "Doyle.",
+   "start": 41147,
+   "end": 41340
+  },
+  {
+   "word": "Runs",
+   "start": 42179,
+   "end": 42372
+  },
+  {
+   "word": "the",
+   "start": 42437,
+   "end": 42469
+  },
+  {
+   "word": "night",
+   "start": 42517,
+   "end": 42711
+  },
+  {
+   "word": "desk",
+   "start": 42824,
+   "end": 43098
+  },
+  {
+   "word": "at",
+   "start": 43162,
+   "end": 43243
+  },
+  {
+   "word": "the",
+   "start": 43243,
+   "end": 43324
+  },
+  {
+   "word": "Hotel",
+   "start": 43324,
+   "end": 43679
+  },
+  {
+   "word": "Marlowe,",
+   "start": 43727,
+   "end": 44049
+  },
+  {
+   "word": "right",
+   "start": 44436,
+   "end": 44630
+  },
+  {
+   "word": "across",
+   "start": 44630,
+   "end": 44888
+  },
+  {
+   "word": "the",
+   "start": 45017,
+   "end": 45049
+  },
+  {
+   "word": "street.",
+   "start": 45114,
+   "end": 45356
+  },
+  {
+   "word": "Dot",
+   "start": 46243,
+   "end": 46420
+  },
+  {
+   "word": "put",
+   "start": 46549,
+   "end": 46662
+  },
+  {
+   "word": "his",
+   "start": 46694,
+   "end": 46807
+  },
+  {
+   "word": "calls",
+   "start": 46872,
+   "end": 47146
+  },
+  {
+   "word": "through",
+   "start": 47259,
+   "end": 47372
+  },
+  {
+   "word": "every",
+   "start": 47517,
+   "end": 47694
+  },
+  {
+   "word": "night.",
+   "start": 47694,
+   "end": 47952
+  },
+  {
+   "word": "Smooth",
+   "start": 48581,
+   "end": 49065
+  },
+  {
+   "word": "as",
+   "start": 49129,
+   "end": 49210
+  },
+  {
+   "word": "a",
+   "start": 49210,
+   "end": 49226
+  },
+  {
+   "word": "new",
+   "start": 49226,
+   "end": 49452
+  },
+  {
+   "word": "dime.",
+   "start": 49533,
+   "end": 49807
+  },
+  {
+   "word": "Heh",
+   "start": 50162,
+   "end": 50339
+  },
+  {
+   "word": "heh.",
+   "start": 50355,
+   "end": 50597
+  },
+  {
+   "word": "Evelyn",
+   "start": 51727,
+   "end": 51937
+  },
+  {
+   "word": "Ashford.",
+   "start": 52050,
+   "end": 52422
+  },
+  {
+   "word": "A",
+   "start": 52855,
+   "end": 52875
+  },
+  {
+   "word": "society",
+   "start": 52875,
+   "end": 53457
+  },
+  {
+   "word": "widow.",
+   "start": 53506,
+   "end": 53700
+  },
+  {
+   "word": "Rings",
+   "start": 54638,
+   "end": 54896
+  },
+  {
+   "word": "long-distance",
+   "start": 54961,
+   "end": 55559
+  },
+  {
+   "word": "every",
+   "start": 55689,
+   "end": 55883
+  },
+  {
+   "word": "night",
+   "start": 55883,
+   "end": 56125
+  },
+  {
+   "word": "at",
+   "start": 56271,
+   "end": 56303
+  },
+  {
+   "word": "half",
+   "start": 56352,
+   "end": 56529
+  },
+  {
+   "word": "past",
+   "start": 56659,
+   "end": 56934
+  },
+  {
+   "word": "one,",
+   "start": 56998,
+   "end": 57112
+  },
+  {
+   "word": "regular",
+   "start": 57726,
+   "end": 58130
+  },
+  {
+   "word": "as",
+   "start": 58211,
+   "end": 58244
+  },
+  {
+   "word": "church.",
+   "start": 58373,
+   "end": 58712
+  },
+  {
+   "word": "Leo",
+   "start": 59842,
+   "end": 60021
+  },
+  {
+   "word": "Brandt.",
+   "start": 60086,
+   "end": 60427
+  },
+  {
+   "word": "Crime",
+   "start": 60817,
+   "end": 61028
+  },
+  {
+   "word": "reporter",
+   "start": 61061,
+   "end": 61483
+  },
+  {
+   "word": "at",
+   "start": 61532,
+   "end": 61581
+  },
+  {
+   "word": "the",
+   "start": 61694,
+   "end": 61727
+  },
+  {
+   "word": "Herald.",
+   "start": 61776,
+   "end": 62133
+  },
+  {
+   "word": "Dot",
+   "start": 62669,
+   "end": 62799
+  },
+  {
+   "word": "sold",
+   "start": 62864,
+   "end": 63173
+  },
+  {
+   "word": "him",
+   "start": 63173,
+   "end": 63287
+  },
+  {
+   "word": "tips",
+   "start": 63400,
+   "end": 63611
+  },
+  {
+   "word": "off",
+   "start": 63741,
+   "end": 63823
+  },
+  {
+   "word": "the",
+   "start": 63904,
+   "end": 64001
+  },
+  {
+   "word": "lines.",
+   "start": 64050,
+   "end": 64424
+  },
+  {
+   "word": "Officer",
+   "start": 65554,
+   "end": 65845
+  },
+  {
+   "word": "Tom",
+   "start": 65958,
+   "end": 66088
+  },
+  {
+   "word": "Riley.",
+   "start": 66217,
+   "end": 66556
+  },
+  {
+   "word": "Walks",
+   "start": 67494,
+   "end": 67704
+  },
+  {
+   "word": "the",
+   "start": 67817,
+   "end": 67850
+  },
+  {
+   "word": "beat",
+   "start": 67914,
+   "end": 68092
+  },
+  {
+   "word": "outside.",
+   "start": 68221,
+   "end": 68739
+  },
+  {
+   "word": "Dot's",
+   "start": 69595,
+   "end": 69806
+  },
+  {
+   "word": "ex-fiancé.",
+   "start": 69935,
+   "end": 70598
+  },
+  {
+   "word": "She",
+   "start": 71390,
+   "end": 71503
+  },
+  {
+   "word": "gave",
+   "start": 71551,
+   "end": 71729
+  },
+  {
+   "word": "him",
+   "start": 71778,
+   "end": 71826
+  },
+  {
+   "word": "back",
+   "start": 71955,
+   "end": 72052
+  },
+  {
+   "word": "the",
+   "start": 72133,
+   "end": 72214
+  },
+  {
+   "word": "ring",
+   "start": 72263,
+   "end": 72376
+  },
+  {
+   "word": "last",
+   "start": 72440,
+   "end": 72699
+  },
+  {
+   "word": "month.",
+   "start": 72748,
+   "end": 72877
+  },
+  {
+   "word": "Here's",
+   "start": 74407,
+   "end": 74608
+  },
+  {
+   "word": "her",
+   "start": 74726,
+   "end": 74759
+  },
+  {
+   "word": "log.",
+   "start": 74826,
+   "end": 75162
+  },
+  {
+   "word": "Every",
+   "start": 75792,
+   "end": 75973
+  },
+  {
+   "word": "call",
+   "start": 76105,
+   "end": 76302
+  },
+  {
+   "word": "she",
+   "start": 76368,
+   "end": 76483
+  },
+  {
+   "word": "put",
+   "start": 76532,
+   "end": 76730
+  },
+  {
+   "word": "through",
+   "start": 76779,
+   "end": 76894
+  },
+  {
+   "word": "tonight,",
+   "start": 77010,
+   "end": 77372
+  },
+  {
+   "word": "and",
+   "start": 77668,
+   "end": 77717
+  },
+  {
+   "word": "when.",
+   "start": 77833,
+   "end": 77948
+  },
+  {
+   "word": "Somebody's",
+   "start": 78678,
+   "end": 79095
+  },
+  {
+   "word": "story",
+   "start": 79111,
+   "end": 79428
+  },
+  {
+   "word": "won't",
+   "start": 79495,
+   "end": 79695
+  },
+  {
+   "word": "fit",
+   "start": 79745,
+   "end": 79928
+  },
+  {
+   "word": "it.",
+   "start": 79995,
+   "end": 80095
+  },
+  {
+   "word": "And",
+   "start": 80925,
+   "end": 80990
+  },
+  {
+   "word": "after",
+   "start": 81235,
+   "end": 81432
+  },
+  {
+   "word": "one",
+   "start": 81481,
+   "end": 81595
+  },
+  {
+   "word": "thirty-eight,",
+   "start": 81660,
+   "end": 82249
+  },
+  {
+   "word": "the",
+   "start": 82804,
+   "end": 82837
+  },
+  {
+   "word": "handwriting",
+   "start": 82886,
+   "end": 83490
+  },
+  {
+   "word": "isn't",
+   "start": 83621,
+   "end": 83817
+  },
+  {
+   "word": "hers.",
+   "start": 83866,
+   "end": 84226
+  },
+  {
+   "word": "You've",
+   "start": 85856,
+   "end": 86004
+  },
+  {
+   "word": "got",
+   "start": 86020,
+   "end": 86134
+  },
+  {
+   "word": "twenty-five",
+   "start": 86183,
+   "end": 86772
+  },
+  {
+   "word": "questions",
+   "start": 86903,
+   "end": 87426
+  },
+  {
+   "word": "before",
+   "start": 87492,
+   "end": 87770
+  },
+  {
+   "word": "the",
+   "start": 87819,
+   "end": 87852
+  },
+  {
+   "word": "switchboard",
+   "start": 87901,
+   "end": 88408
+  },
+  {
+   "word": "cuts",
+   "start": 88473,
+   "end": 88669
+  },
+  {
+   "word": "you",
+   "start": 88719,
+   "end": 88800
+  },
+  {
+   "word": "off.",
+   "start": 88882,
+   "end": 88980
+  },
+  {
+   "word": "Ring",
+   "start": 89710,
+   "end": 89826
+  },
+  {
+   "word": "them.",
+   "start": 89958,
+   "end": 90073
+  },
+  {
+   "word": "Push",
+   "start": 90535,
+   "end": 90717
+  },
+  {
+   "word": "them.",
+   "start": 90849,
+   "end": 90981
+  },
+  {
+   "word": "Catch",
+   "start": 91360,
+   "end": 91558
+  },
+  {
+   "word": "them",
+   "start": 91674,
+   "end": 91740
+  },
+  {
+   "word": "out.",
+   "start": 91773,
+   "end": 91872
+  },
+  {
+   "word": "When",
+   "start": 92702,
+   "end": 92816
+  },
+  {
+   "word": "you",
+   "start": 92849,
+   "end": 92881
+  },
+  {
+   "word": "know",
+   "start": 92947,
+   "end": 93045
+  },
+  {
+   "word": "who,",
+   "start": 93257,
+   "end": 93289
+  },
+  {
+   "word": "and",
+   "start": 93926,
+   "end": 93991
+  },
+  {
+   "word": "you",
+   "start": 94008,
+   "end": 94105
+  },
+  {
+   "word": "can",
+   "start": 94154,
+   "end": 94236
+  },
+  {
+   "word": "prove",
+   "start": 94318,
+   "end": 94579
+  },
+  {
+   "word": "it,",
+   "start": 94644,
+   "end": 94693
+  },
+  {
+   "word": "file",
+   "start": 95052,
+   "end": 95264
+  },
+  {
+   "word": "the",
+   "start": 95395,
+   "end": 95493
+  },
+  {
+   "word": "charge.",
+   "start": 95542,
+   "end": 95819
+  },
+  {
+   "word": "Plug",
+   "start": 96749,
+   "end": 96951
+  },
+  {
+   "word": "in,",
+   "start": 97085,
+   "end": 97203
+  },
+  {
+   "word": "love.",
+   "start": 97606,
+   "end": 97791
+  },
+  {
+   "word": "Start",
+   "start": 98421,
+   "end": 98711
+  },
+  {
+   "word": "asking.",
+   "start": 98847,
+   "end": 99154
+  }
+ ]
+}

@@ -19,6 +19,23 @@ export const NERVES = {
   STEP_UP: 3,
 } as const;
 
+// "You're lying", "that was you", "explain that": confrontation, even without evidence.
+const ACCUSATION = /\b(lying|liar|lie to me|lied|you did it|you killed|it was you|that was you|admit it|confess|explain (that|this|yourself)|don't lie)\b/i;
+
+/**
+ * The least a question should rattle a suspect, whatever the model proposes: confronting them
+ * with evidence they fear (their case's pressure points) is worth 2, any accusation 1.
+ * -Infinity means no floor: the model's number stands.
+ */
+export function pressureFloor(question: string, pressurePoints: readonly string[]): number {
+  const q = question.toLowerCase();
+  // Whole words only, so "tip" doesn't fire inside "stipulate".
+  const hit = (p: string) => new RegExp(`(?<![a-z])${p.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z])`).test(q);
+  if (pressurePoints.some(hit)) return 2;
+  if (ACCUSATION.test(question)) return 1;
+  return -Infinity;
+}
+
 /** Applies the model's proposed change, limited to one question's worth, within the scale. */
 export function applyPressure(current: number, proposed: number): number {
   const step = Math.max(NERVES.STEP_DOWN, Math.min(NERVES.STEP_UP, Math.round(proposed)));

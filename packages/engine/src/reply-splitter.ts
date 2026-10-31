@@ -1,4 +1,4 @@
-import { isActedTag } from "./tags.js";
+import { isActedTag, soundFor } from "./tags.js";
 
 // Splits a streamed suspect reply into speech for TTS and the trailing ###META block for the engine.
 
@@ -17,8 +17,9 @@ const MAX_TAGS_PER_REPLY = 1;
 const SENTENCE_END = /[.!?…]["'”’)\]]?\s+(?=\S)/g;
 
 /**
- * Keeps the tags TTS acts out ([sighs], [laughs]...) and removes every other stage direction
- * ((grins), [walks away], *nervously*) and markdown emphasis, so TTS reads only dialogue.
+ * Turns sound cues ([sighs], [laughs]...) into spellings the TTS performs, and removes every
+ * other stage direction ((grins), [walks away], *nervously*) and markdown emphasis, so TTS
+ * reads only dialogue.
  */
 function cleanForSpeech(text: string, budget: { tags: number }): string {
   return text
@@ -29,7 +30,7 @@ function cleanForSpeech(text: string, budget: { tags: number }): string {
       const name = tag.trim().toLowerCase();
       if (!isActedTag(name) || budget.tags <= 0) return "";
       budget.tags--;
-      return `[${name}]`;
+      return soundFor(name);
     })
     .replace(/[*_#`]/g, "")
     .replace(/\s+/g, " ")
@@ -65,6 +66,13 @@ export function createReplySplitter(): ReplySplitter {
       if (at !== -1) {
         meta = speech.slice(at + META_MARKER.length);
         speech = speech.slice(0, at);
+      } else {
+        // Dialogue never contains braces; a bare JSON block is META the model forgot to mark.
+        const brace = speech.indexOf("{");
+        if (brace !== -1) {
+          meta = speech.slice(brace);
+          speech = speech.slice(0, brace);
+        }
       }
       return takeSentences();
     },

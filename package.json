@@ -9,8 +9,7 @@
     "test": "vitest run",
     "dev:server": "pnpm --filter @mmh/server dev",
     "dev:web": "pnpm --filter @mmh/web dev",
-    "probe:agent": "tsx --env-file=.env tools/probe-voice-agent.ts",
-    "probe:llm": "tsx --env-file=.env tools/probe-own-llm.ts",
+    "narration": "tsx --env-file=.env tools/render-narration.ts",
     "smoke": "pnpm --filter @mmh/server exec tsx src/smoke.ts"
   },
   "devDependencies": {

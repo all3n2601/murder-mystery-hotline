@@ -21,6 +21,22 @@ describe("game", () => {
     expect(JSON.stringify(state)).not.toMatch(/ate the cake|culprit|polished silver/i);
   });
 
+  it("shares the intro, each suspect's public hook, and the starting leads, but not motives", () => {
+    const fixture = fixtureCase();
+    fixture.characters[0]!.hook = "Runs the kitchen. Hates waste.";
+    fixture.intro = {
+      acts: [{ id: "night", shot: "exterior", lines: [{ text: "A dark night.", pause: 1 }] }],
+      leads: [{ suspect: "cook", text: "The kitchen line went quiet at one." }],
+    };
+    const loaded = loadCase(fixture);
+    if (!loaded.ok) throw new Error(loaded.errors.join("\n"));
+    const state = createGame(loaded.pack).publicState();
+    expect(state.suspects[0]!.hook).toBe("Runs the kitchen. Hates waste.");
+    expect(state.intro?.acts[0]).toEqual({ id: "night", shot: "exterior", lines: [{ text: "A dark night.", pause: 1 }] });
+    expect(state.leads).toEqual([{ suspect: "cook", text: "The kitchen line went quiet at one." }]);
+    expect(JSON.stringify(state)).not.toContain(fixture.characters[0]!.motive ?? "no motive");
+  });
+
   it("gives a suspect only the clues they may reveal right now", () => {
     const game = newGame();
     game.dial("butler");
@@ -28,6 +44,39 @@ describe("game", () => {
     expect(system).toContain("Says he polished silver"); // eligible: no requirements
     expect(system).not.toContain("chocolate"); // locked: needs crumbs and nerves 6
     expect(system).not.toContain("I ate it"); // confession not earned
+  });
+
+  describe("pressure (the small model often forgets META, or plays it cool)", () => {
+    const withPressurePoints = (c: ReturnType<typeof fixtureCase>) => {
+      c.characters[1]!.pressurePoints = ["pantry", "crumbs"];
+    };
+    const nervesAfter = (question: string, metaText: string | null) => {
+      const game = newGame(withPressurePoints);
+      game.dial("butler"); // nerves 2
+      game.prepareTurn(question);
+      game.recordReply({ spoken: "I couldn't say.", meta: metaText });
+      return game.state().nerves.butler;
+    };
+
+    it("rattles a suspect confronted with evidence that matters to them, even with no META", () => {
+      expect(nervesAfter("Crumbs led from the pantry to your shoes. Explain that.", null)).toBe(4);
+    });
+
+    it("doesn't let the model shrug off evidence by proposing calm", () => {
+      expect(nervesAfter("Why were you in the pantry?", meta({ pressure_change: -1 }))).toBe(4);
+    });
+
+    it("still takes the model's bigger number when it gives one", () => {
+      expect(nervesAfter("Why were you in the pantry?", meta({ pressure_change: 3 }))).toBe(5);
+    });
+
+    it("counts a bare accusation for a little", () => {
+      expect(nervesAfter("You're lying to me.", null)).toBe(3);
+    });
+
+    it("leaves a friendly question alone when the model says nothing", () => {
+      expect(nervesAfter("Lovely evening for it?", null)).toBe(2);
+    });
   });
 
   it("only tells a suspect their shaken truth once their nerves reach 5", () => {

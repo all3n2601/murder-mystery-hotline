@@ -1,4 +1,4 @@
-import { Id } from "@mmh/protocol";
+import { Id, Intro, Lead } from "@mmh/protocol";
 import { z } from "zod";
 import { NERVES } from "./nerves.js";
 import { isActedTag } from "./tags.js";
@@ -32,12 +32,16 @@ const Character = z.object({
   name: z.string().min(1),
   role: z.string().min(1),
   line: z.string().min(1),
+  /** Public, non-spoiling introduction shown in the intro and the notebook. */
+  hook: z.string().min(1).optional(),
   voice: z.string().min(1),
   persona: z.string().min(1),
   motive: z.string().nullable(),
   startNerves: z.number().int().min(NERVES.MIN).max(NERVES.HIGHEST_GATE).default(2),
   truth: z.object({ guarded: z.string().min(1), shaken: z.string().min(1) }),
   lies: z.array(z.string()).default([]),
+  /** Evidence that genuinely rattles them: a question mentioning any of these raises nerves. */
+  pressurePoints: z.array(z.string().min(1)).default([]),
   speech: Speech.optional(),
   /** Said just before they slam the phone down. */
   hangUpLine: z.string().min(1).default("I've said all I'm going to say. Goodnight."),
@@ -58,6 +62,7 @@ export const CasePackSchema = z.object({
   startingEvidence: z.array(z.object({ id: Id, title: z.string().min(1), text: z.string().min(1) })),
   hints: z.array(z.object({ id: Id, afterClues: z.array(Id).default([]), text: z.string().min(1) })).default([]),
   characters: z.array(Character).min(2),
+  intro: Intro.extend({ leads: z.array(Lead).default([]) }).optional(),
   solution: z.object({
     culprit: Id,
     keyClues: z.array(Id).min(1),
@@ -100,6 +105,12 @@ function validateCase(pack: CasePack): string[] {
   }
   for (const h of pack.hints) {
     for (const r of h.afterClues) if (!clueIds.has(r)) errors.push(`hint ${h.id} waits on unknown clue ${r}`);
+  }
+  for (const act of pack.intro?.acts ?? []) {
+    for (const l of act.lines) if (l.suspect && !characterIds.has(l.suspect)) errors.push(`intro act ${act.id} introduces unknown suspect ${l.suspect}`);
+  }
+  for (const lead of pack.intro?.leads ?? []) {
+    if (!characterIds.has(lead.suspect)) errors.push(`lead "${lead.text}" points at unknown suspect ${lead.suspect}`);
   }
   if (!characterIds.has(pack.solution.culprit)) errors.push(`culprit ${pack.solution.culprit} is not a character`);
   for (const k of pack.solution.keyClues) if (!clueIds.has(k)) errors.push(`key clue ${k} does not exist`);

@@ -24,7 +24,7 @@ describe("AssemblyAI TTS adapter", () => {
       onAudio: (pcm) => audio.push(Buffer.from(pcm).toString()),
     });
     expect(audio.join("").trim()).toBe("I was at the desk. All night.");
-    expect(server.log[0]).toMatchObject({ voice: "george", auth: "k3y" });
+    expect(server.log[0]).toMatchObject({ voiceId: "aai-george", auth: "k3y" });
     await vi.waitFor(() => expect(server!.log[0]!.received.at(-1)).toBe("Terminate"));
   });
 
@@ -139,6 +139,18 @@ describe("AssemblyAI TTS adapter", () => {
     await expect(attempt).rejects.toThrow(/silent/);
   });
 
+  it("reports word timings for every flush, including the last, measured from the start of the reply", async () => {
+    server = await startFakeTtsServer();
+    const line = createAssemblyTts({ apiKey: "k", url: server.url }).openLine("george");
+    const words: { word: string; start: number }[][] = [[], []];
+    for (const [i, reply] of [["I was at the desk.", "All night."], ["Second reply."]].entries()) {
+      await line.speak({ sentences: sentences(...reply), signal: new AbortController().signal, onAudio: () => {}, onWords: (w) => words[i]!.push(...w) });
+    }
+    expect(words[0]!.map((w) => [w.word.trim(), w.start])).toEqual([["I was at the desk.", 0], ["All night.", 100]]);
+    expect(words[1]!.map((w) => [w.word.trim(), w.start])).toEqual([["Second reply.", 0]]);
+    line.close();
+  });
+
   describe("reusable lines (one socket per voice per call)", () => {
     const say = (line: ReturnType<ReturnType<typeof createAssemblyTts>["openLine"]>, text: string, signal = new AbortController().signal) => {
       const heard: string[] = [];
@@ -152,7 +164,7 @@ describe("AssemblyAI TTS adapter", () => {
       expect(await say(line, "Second reply.")).toBe("Second reply.");
       expect(await say(line, "Third reply.")).toBe("Third reply.");
       expect(server.log).toHaveLength(1);
-      expect(server.log[0]!.voice).toBe("george");
+      expect(server.log[0]!.voiceId).toBe("aai-george");
       line.close();
       await vi.waitFor(() => expect(server!.log[0]!.received.at(-1)).toBe("Terminate"));
     });
@@ -184,6 +196,17 @@ describe("AssemblyAI TTS adapter", () => {
       await leoSpeaks;
       expect(server.peakOpen()).toBe(1);
       leo.close();
+    });
+
+    it("keeps an idle line open past the server's inactivity timeout", async () => {
+      server = await startFakeTtsServer({ inactivityTimeoutMs: 80 });
+      const line = createAssemblyTts({ apiKey: "k", url: server.url, keepAliveMs: 30 }).openLine("george");
+      await say(line, "Before.");
+      await new Promise((r) => setTimeout(r, 250)); // a suspect waiting out a long question
+      expect(await say(line, "After.")).toBe("After.");
+      expect(server.log).toHaveLength(1); // the same socket, not a reopened one
+      expect(server.log[0]!.received).toContain("KeepAlive");
+      line.close();
     });
 
     it("reopens transparently if the server drops the socket between replies", async () => {

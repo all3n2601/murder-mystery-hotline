@@ -68,6 +68,8 @@ export function fakeStt() {
     audio,
     willHear: (text: string) => (nextFinal = text),
     partial: (text: string) => handlers?.onPartial(text),
+    /** Real STT ends a turn on any short pause, even while talk is still held. */
+    finishTurn: (text: string) => handlers?.onFinal(text),
     closed: () => closed,
   };
 }

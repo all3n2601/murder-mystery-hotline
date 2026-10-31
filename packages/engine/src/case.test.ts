@@ -10,6 +10,16 @@ function errorsFor(mutate: (c: ReturnType<typeof fixtureCase>) => void): string[
 }
 
 describe("loadCase", () => {
+  it("rejects an intro or a lead that names a suspect who isn't in the case", () => {
+    const errors = errorsFor((c) => {
+      c.intro = {
+        acts: [{ id: "suspects", shot: "suspects", lines: [{ text: "The gardener, out back.", suspect: "gardener" }] }],
+        leads: [{ suspect: "chauffeur", text: "Where was the car?" }],
+      };
+    });
+    expect(errors).toEqual(expect.arrayContaining([expect.stringContaining("gardener"), expect.stringContaining("chauffeur")]));
+  });
+
   it("loads a valid case pack", () => {
     const r = loadCase(fixtureCase());
     expect(r.ok).toBe(true);

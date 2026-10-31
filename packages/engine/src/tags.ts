@@ -1,11 +1,19 @@
-// Bracket tags the streaming TTS performs instead of reading aloud. Verified 2026-10-17 by ear
-// and by zero-length WordBoundaries (docs/reference/assemblyai/tts-protocol.md). Add a tag here
-// only after verifying it; anything else in brackets is dropped before speech.
-export const ACTED_TAGS = ["sighs", "laughs", "chuckles", "gasps", "clears throat", "coughs", "scoffs"] as const;
-export type ActedTag = (typeof ACTED_TAGS)[number];
+// Sound cues a character may write as [tag]. The streaming TTS reads bracket tags aloud as
+// words (verified 2026-10-18 by transcribing its audio), so each cue is spoken as a spelling it
+// performs instead. Only cues with a spelling verified that way belong here; any other bracket is
+// dropped before speech. See docs/reference/assemblyai/tts-markup.md.
+const SOUNDS = {
+  sighs: "Haah…",
+  laughs: "Ha! Ha ha.",
+  chuckles: "Heh heh.",
+} as const;
 
-const ACTED: ReadonlySet<string> = new Set(ACTED_TAGS);
+export type ActedTag = keyof typeof SOUNDS;
+export const ACTED_TAGS = Object.keys(SOUNDS) as ActedTag[];
 
 export function isActedTag(tag: string): tag is ActedTag {
-  return ACTED.has(tag);
+  return Object.hasOwn(SOUNDS, tag);
 }
+
+/** What the TTS should be given to perform a cue. */
+export const soundFor = (tag: ActedTag): string => SOUNDS[tag];

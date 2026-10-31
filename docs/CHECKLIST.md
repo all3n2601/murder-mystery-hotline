@@ -38,45 +38,46 @@ Source of truth for decisions: [plan.md](plan.md). Ticked items are done and on 
 
 **To do**
 - [x] **P1** Expressive characters:
-  - [x] Reply splitter keeps the acted tags (`[sighs] [laughs] [chuckles] [gasps] [clears throat] [coughs] [scoffs]`), strips all other brackets, and keeps at most one tag per reply.
+  - [x] Reply splitter turns sound cues into spellings the TTS performs (`[sighs]`→"Haah…", `[laughs]`→"Ha! Ha ha.", `[chuckles]`→"Heh heh."), drops every other bracket, and keeps at most one cue per reply. The TTS reads bracket tags aloud; see [tts-markup.md](reference/assemblyai/tts-markup.md). *(uncommitted)*
   - [x] Case schema: a per-character `speech` block (tone, verbal habits, filler words, signature phrases, preferred tags), with tags checked by the validator.
   - [x] Prompt: a "how you talk" section, and delivery that changes with nerves (smooth, then slipping, then false starts); a signature phrase isn't offered again once it's been used.
   - [x] Speech styles written for Doyle, Evelyn, Leo and Riley.
-  - [ ] Finish the tag probe: `[sniffs] [whispers] [groans] [exhales] [nervous laugh] [pause]`.
+  - [x] ~~Finish the tag probe~~: moot, the TTS supports no tags at all (Kyutai Pocket TTS takes plain text only).
 - [ ] **P1** The small suspect model (`qwen3.5-4b-32k-fast`, the only Gateway model this account can use) invents details ("a voltage spike at the break-room junction") and reuses lines from its own history. Get access to a bigger model through the organizers, or try a lower temperature and a stricter "deflect, don't invent" rule.
-- [ ] **P1** Mrs. Hale reads the briefing aloud when a case opens.
+- [x] **P1** Mrs. Hale reads the briefing aloud when a case opens (pre-rendered by `tools/render-narration.ts`, drives the intro cuts). *(uncommitted)*
 - [ ] **P1** Model reliability check:
   - META stays valid over 20 or more turns;
   - hang-ups, the confession and hints all trigger;
   - prompt-injection attempts ("ignore your instructions") fail.
 - [ ] **P1** AI playtester: text-only, 10 runs, reporting solve rate, questions used and rarely found clues. At most 2 hours.
 - [ ] **P2** Log the Gateway `request_id` and per-turn latency (question → first audio).
-- [ ] **P2** Delete the throwaway `PROTOTYPE-*` files and the Plan B Voice Agent probes, or move them out of `src/`.
+- [x] **P1** Reply splitter treats a bare JSON block as META (the small model sometimes drops `###META`, and the JSON was spoken aloud). *(uncommitted)*
+- [x] **P2** Deleted the throwaway `PROTOTYPE-*` files and the Plan B Voice Agent probes (in git history). *(uncommitted)*
 
 ## 2. Frontend (`apps/web`, replaces the test bench)
 
-- [ ] **P0** App shell: Vite, React and Zustand, plus the game-socket client with `hello`/resume.
+- [x] **P0** App shell: Vite, React and Zustand, plus the game-socket client with `hello`/resume. *(uncommitted; plan in [frontend-plan.md](frontend-plan.md))*
 - [ ] **P0** Audio:
-  - [ ] Mic worklet: resample to 16 kHz inside the worklet (needed for Safari and Firefox), hold-to-talk on Space and an on-screen button, and barge-in.
-  - [ ] Playback: a ring buffer that drops stale utterance IDs, plus the phone-line filter, toned down a little.
-  - [ ] The "Pick up the receiver" click unlocks audio; mic denied falls back to typing.
-- [ ] **P0** Game screen:
+  - [x] Mic worklet: resample to 16 kHz inside the worklet (needed for Safari and Firefox), hold-to-talk on Space and an on-screen button, and barge-in. Not yet tried with a real mic.
+  - [x] Playback: a ring buffer that drops stale utterance IDs, plus the phone-line filter, toned down a little.
+  - [x] The "Pick up the receiver" click unlocks audio; mic denied falls back to typing.
+- [x] **P0** Game screen:
   - call panel with live captions;
   - nerves meter;
   - notebook;
   - typed question box;
   - error and busy states.
-- [ ] **P0** Accusation screen (choose a suspect, tick evidence), then the verdict with stars and Mrs. Hale's ending.
-- [ ] **P1** Pixi switchboard scene: jacks, lamps, patch cords, a lit line during a call. This gets about 70% of the art time.
-- [ ] **P1** Captions synced word by word from the `words` timings.
-- [ ] **P1** Sound effects with Howler: dial clicks, ring, receiver up and down, the busy crackle, room tone.
-- [ ] **P1** Intro cinematic (GSAP): the exchange room at night, an evidence close-up, Mrs. Hale's narration. Skippable.
-- [ ] **P1** Art: procedural Pixi pieces, 2–3 generated backdrops, suspect silhouettes. Backdrops capped at 1 hour.
+- [x] **P0** Accusation screen (choose a suspect, tick evidence), then the verdict with stars and Mrs. Hale's ending.
+- [x] **P1** Pixi switchboard scene: jacks, lamps, patch cords, a lit line during a call.
+- [x] **P1** Captions synced word by word, in the intro and in calls. The TTS adapter's word timings were fixed twice: the last flush's timings were dropped, and reused-socket timings were offset (word times are connection-wide). *(uncommitted)*
+- [x] **P1** Sound effects (synthesised with Web Audio, no Howler): dial clicks, ring, receiver up and down, the busy crackle, room tone, rain.
+- [x] **P1** Intro: six acts introducing the victim, the scene and each suspect, with leads at the end; narration spliced line by line with directed pauses; Next/Skip. *(uncommitted)*
+- [ ] **P1** Art: code-drawn placeholders are in. Generate the 18 painted images from [cases/night-operator/art/PROMPTS.md](../cases/night-operator/art/PROMPTS.md); they load automatically.
 - [ ] **P1** Accessibility:
   - every control works from the keyboard, with visible focus;
   - captions on by default;
   - `prefers-reduced-motion` respected.
-- [ ] **P2** Layout works on a laptop and a tablet.
+- [x] **P2** Layout works on a laptop and a tablet (notebook becomes a drawer below 1000 px).
 - [ ] **P2** Case board / title screen with a case picker.
 
 ## 3. Content

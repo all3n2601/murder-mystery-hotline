@@ -1,7 +1,7 @@
 import { STARTING_EVIDENCE, type ChatMessage, type Clue, type PublicCaseState, type VerdictOutcome } from "@mmh/protocol";
 import { z } from "zod";
 import type { CaseCharacter, CaseClueDef, CasePack } from "./case.js";
-import { applyPressure, NERVES } from "./nerves.js";
+import { applyPressure, pressureFloor, NERVES } from "./nerves.js";
 import { buildSystemPrompt } from "./prompt.js";
 
 // One player's game: what they know, how rattled each suspect is, and the rules that decide
@@ -61,8 +61,10 @@ export function createGame(pack: CasePack) {
         era: pack.era,
         briefing: pack.briefing,
         questionBudget: pack.questionBudget,
-        suspects: pack.characters.map((c) => ({ id: c.id, name: c.name, role: c.role, line: c.line })),
+        suspects: pack.characters.map((c) => ({ id: c.id, name: c.name, role: c.role, line: c.line, ...(c.hook ? { hook: c.hook } : {}) })),
         startingEvidence: notebook.filter((c) => c.source === STARTING_EVIDENCE),
+        ...(pack.intro ? { intro: { acts: pack.intro.acts } } : {}),
+        leads: pack.intro?.leads ?? [],
       };
     },
 
@@ -125,11 +127,14 @@ export function createGame(pack: CasePack) {
         notebook.push(newClues.at(-1)!);
       }
 
-      history.get(suspect.id)!.push({ role: "user", content: pendingQuestion ?? "" }, { role: "assistant", content: reply.spoken });
+      const question = pendingQuestion ?? "";
+      history.get(suspect.id)!.push({ role: "user", content: question }, { role: "assistant", content: reply.spoken });
       pendingQuestion = null;
       questionsAsked++;
 
-      let after = applyPressure(before, meta.pressure_change);
+      // The model's own number is a floor-raised guess: it often omits META, or plays it cool
+      // when confronted. Evidence the suspect fears always rattles them.
+      let after = applyPressure(before, Math.max(meta.pressure_change, pressureFloor(question, suspect.pressurePoints)));
       // A cornered culprit stays on the line: the next push brings the confession, not a click.
       if (isCornered(suspect, Math.max(before, after))) after = Math.min(after, NERVES.HIGHEST_GATE);
       nerves.set(suspect.id, after);

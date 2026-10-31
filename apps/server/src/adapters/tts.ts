@@ -1,14 +1,15 @@
 import WebSocket from "ws";
 import type { TtsLine, TtsPort, Word } from "../ports.js";
 
-// AssemblyAI streaming TTS (Preview). Protocol verified by probe, see
+// AssemblyAI streaming TTS (AssemblyAI-TTS-1). Protocol checked against the docs and by probe, see
 // docs/reference/assemblyai/tts-protocol.md.
 //
-// The account allows 3 open sessions and only about 5 NEW sessions a minute, so a phone call
-// keeps one socket (a "line") per voice and speaks every reply over it. The voice is fixed per
-// socket, and an idle session never times out, so a line always ends with Terminate.
+// The free plan allows only 5 NEW sessions a minute, so a phone call keeps one socket (a "line")
+// per voice and speaks every reply over it. The voice is fixed per socket. The server closes a
+// session idle for 120 s, so an open line sends KeepAlive, and always ends with Terminate.
 
-export const TTS_URL = "wss://streaming-tts.assemblyai.com/v1/ws";
+export const TTS_URL = "wss://tts.us.assemblyai.com/v1/ws";
+const WORDS_GRACE_MS = 500;
 
 /** The account's session cap refused this connection before it began; safe to retry. */
 class TtsRefused extends Error {}
@@ -17,7 +18,7 @@ type ServerFrame =
   | { type: "Begin" }
   | { type: "Audio"; audio: string }
   | { type: "FlushDone"; flush_id: number }
-  | { type: "WordBoundaries"; words: Word[] }
+  | { type: "WordBoundaries"; flush_id: number; audio_start_ms?: number; words: Word[] }
   | { type: "Cancelled" }
   | { type: "Termination" }
   | { type: "Error"; error_code: number; error: string };
@@ -50,6 +51,10 @@ type Utterance = {
   args: SpeakArgs;
   flushesSent: number;
   flushesDone: number;
+  /** WordBoundaries arrive after each FlushDone; the reply isn't done until the last ones do. */
+  wordsDone: number;
+  /** Where this reply's audio begins on the connection (its first flush's audio_start_ms). */
+  startMs: number | null;
   inputDone: boolean;
   resolve(): void;
   reject(err: Error): void;
@@ -72,16 +77,20 @@ export function createAssemblyTts(opts: {
   idleTimeoutMs?: number;
   /** Waits before retrying a connection the account cap refused (3009). */
   retryBusyMs?: number[];
+  /** How often an open line pings the server, which closes sessions idle for 120 s. */
+  keepAliveMs?: number;
 }): TtsPort {
   const base = opts.url ?? TTS_URL;
   const slots = createSlots(opts.maxConcurrent ?? 3);
   const retryBusyMs = opts.retryBusyMs ?? [1000, 2000, 4000, 8000];
   const idleTimeoutMs = opts.idleTimeoutMs ?? 8_000;
+  const keepAliveMs = opts.keepAliveMs ?? 60_000;
 
   /** Opens a socket for one voice and resolves once the server says Begin. */
   function connect(voice: string): Promise<Connection> {
     const url = new URL(base);
-    url.searchParams.set("voice", voice);
+    // TTS-1 retired `voice=`; built-in voices are the old names with an "aai-" prefix.
+    url.searchParams.set("voice_id", `aai-${voice}`);
     url.searchParams.set("sample_rate", String(opts.sampleRate ?? 24_000));
     const ws = new WebSocket(url, { headers: { Authorization: opts.apiKey } });
 
@@ -91,6 +100,9 @@ export function createAssemblyTts(opts: {
     let discarding = false;
     let watchdog: NodeJS.Timeout | undefined;
     const closed = new Promise<void>((r) => ws.once("close", () => r()));
+    const keepAlive = setInterval(() => send({ type: "KeepAlive" }), keepAliveMs);
+    keepAlive.unref();
+    void closed.then(() => clearInterval(keepAlive));
 
     const send = (msg: object) => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
@@ -108,13 +120,22 @@ export function createAssemblyTts(opts: {
       watchdog = setTimeout(() => fail(new Error("TTS went silent")), idleTimeoutMs);
       watchdog.unref();
     };
-    const finishIfDone = () => {
-      if (current && current.inputDone && current.flushesDone >= current.flushesSent) {
-        clearTimeout(watchdog);
-        const done = current;
-        current = null;
-        done.resolve();
+    let wordsGrace: ReturnType<typeof setTimeout> | undefined;
+    const finishIfDone = (force = false) => {
+      if (!current || !current.inputDone || current.flushesDone < current.flushesSent) return;
+      if (!force && current.wordsDone < current.flushesSent) {
+        // Don't hang a reply on timings that never come; captions just stop short.
+        clearTimeout(wordsGrace);
+        const waiting = current;
+        wordsGrace = setTimeout(() => current === waiting && finishIfDone(true), WORDS_GRACE_MS);
+        wordsGrace.unref();
+        return;
       }
+      clearTimeout(watchdog);
+      clearTimeout(wordsGrace);
+      const done = current;
+      current = null;
+      done.resolve();
     };
 
     function utter(args: SpeakArgs): Promise<void> {
@@ -133,6 +154,8 @@ export function createAssemblyTts(opts: {
           args,
           flushesSent: 0,
           flushesDone: 0,
+          wordsDone: 0,
+          startMs: null,
           inputDone: false,
           resolve: () => (settled(), resolve()),
           reject: (e) => (settled(), reject(e)),
@@ -205,7 +228,15 @@ export function createAssemblyTts(opts: {
         if (discarding || !current) return;
         armWatchdog();
         if (frame.type === "Audio") current.args.onAudio(new Uint8Array(Buffer.from(frame.audio, "base64")));
-        else if (frame.type === "WordBoundaries") current.args.onWords?.(frame.words);
+        else if (frame.type === "WordBoundaries") {
+          // Word times count from the start of the connection (probed 2026-10-18); the reply's
+          // first flush starts at its audio_start_ms. Report them from the reply's start.
+          current.startMs ??= frame.audio_start_ms ?? 0;
+          const from = current.startMs;
+          current.args.onWords?.(frame.words.map((w) => ({ ...w, start: w.start - from, end: w.end - from })));
+          current.wordsDone++;
+          finishIfDone();
+        }
         else if (frame.type === "FlushDone") {
           current.flushesDone++;
           finishIfDone();
