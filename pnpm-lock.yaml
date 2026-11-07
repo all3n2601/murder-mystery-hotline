@@ -14,6 +14,9 @@ importers:
       '@types/ws':
         specifier: ^8.5.13
         version: 8.18.2
+      playwright-core:
+        specifier: 1.56.1
+        version: 1.56.1
       tsx:
         specifier: ^4.19.2
         version: 4.23.15
@@ -1067,6 +1070,11 @@ packages:
 
   pixi.js@8.6.6:
     resolution: {integrity: sha512-o5pw7G2yuIrnBx0G4npBlmFp+XGNcapI/Ufs62rRj/4XKxc1Zo74YJr/BtEXcXTraTKd+pQvYOLvnfxRjxBMvQ==}
+
+  playwright-core@1.56.1:
+    resolution: {integrity: sha512-hutraynyn31F+Bifme+Ps9Vq59hKuUCz7H1kDOcBs+2oGguKkWTU50bBWrtz34OUWmIwpBTWDxaRPXrIXkgvmQ==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   postcss@8.5.30:
     resolution: {integrity: sha512-zkd+e9S1AQHhmaBKye9zlFHWjOwVgqXl1q3ECYy8561K7qxR2cREf/STLskulBFd78k6AOFeA+ff1TtEzk9bAA==}
@@ -2170,6 +2178,8 @@ snapshots:
       eventemitter3: 5.0.4
       ismobilejs: 1.1.1
       parse-svg-path: 0.1.2
+
+  playwright-core@1.56.1: {}
 
   postcss@8.5.30:
     dependencies:

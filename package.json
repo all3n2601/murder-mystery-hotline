@@ -3,18 +3,22 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.5.1",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "typecheck": "tsc -b",
     "test": "vitest run",
     "dev:server": "pnpm --filter @mmh/server dev",
     "dev:web": "pnpm --filter @mmh/web dev",
     "narration": "tsx --env-file=.env tools/render-narration.ts",
+    "demo": "tsx tools/record-demo.ts",
     "smoke": "pnpm --filter @mmh/server exec tsx src/smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/ws": "^8.5.13",
+    "playwright-core": "1.56.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^3.0.0",
