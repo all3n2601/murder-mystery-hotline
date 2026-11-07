@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+.env
+.git
+probe-out
+.playwright-mcp
+.claude
+cases/*/art/originals
+**/*.tsbuildinfo

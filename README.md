@@ -4,6 +4,8 @@ A detective game you play by voice. A switchboard operator has been strangled wi
 
 Built for AssemblyAI's Voice Hackathon Week (October 2026), on the **AssemblyAI TTS API**.
 
+**Play it:** https://murder-mystery-hotline.fly.dev (Chrome, headphones recommended).
+
 ## How it works
 
 ```

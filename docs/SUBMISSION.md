@@ -62,10 +62,10 @@ Shot list (about 2 min): intro narration, then a call where a clue lands, then p
 
 ## Live demo or hosted app link
 
-`<Fly URL, or leave blank>`
+https://murder-mystery-hotline.fly.dev
 
 ## Source code repository link
 
 https://github.com/all3n2601/murder-mystery-hotline
 
-**The repo is currently PRIVATE.** Make it public before submitting.
+(Public.)
